@@ -50,16 +50,34 @@ const BettingLines = () => {
       return z * stdev + mean;
     }
 
+    const getLineForAllStats = (ppt: number) => {
+      const statCategories = {
+        "Balls In": ppt / 0.75,
+        "Scratches Total": ppt / 2,
+        "Points In Tournament": ppt,
+        "2 Balls In": ppt / 2.5,
+        "3 Balls In": ppt / 3.75,
+        "4+ Balls In": ppt / 7,
+      };
+
+      return [Object.keys(statCategories), statCategories];
+    };
+
     const calculateBettingLines = () => {
       const lines = [];
 
       if (Object.keys(playerAverages.singles).length > 0) {
         // Calculate lines for singles
         for (const [player, avg] of Object.entries(playerAverages.singles)) {
+          const [keys, statCatsPlayer]: any = getLineForAllStats(avg);
+          const stat = keys[Math.floor(Math.random() * keys.length)];
+          const statValue = statCatsPlayer[stat];
+
           lines.push({
             player,
             mode: "Singles",
-            line: gaussianRandom(parseFloat(avg), getRandomInt(-2, 2)),
+            stat,
+            line: gaussianRandom(parseFloat(statValue), 0),
           });
         }
       }
@@ -88,8 +106,8 @@ const BettingLines = () => {
           <Tr>
             <Th>Player</Th>
             <Th>Mode</Th>
-            <Th isNumeric>Avg PPG</Th>
-            <Th>Over/Under</Th>
+            <Th>Stat</Th>
+            <Th>Line</Th>
           </Tr>
         </Thead>
         <Tbody>
@@ -102,8 +120,8 @@ const BettingLines = () => {
               <Tr key={`${line.player}-${line.mode}`}>
                 <Td>{line.player}</Td>
                 <Td>{line.mode}</Td>
-                <Td isNumeric>{line.line.toFixed(1)}</Td>
-                <Td>{line.overUnder}</Td>
+                <Td>{line.stat}</Td>
+                <Td>{line.line.toFixed(1)}</Td>
               </Tr>
             );
           })}

@@ -372,6 +372,91 @@ app.get("/total-tournaments-played", (_, res) => {
   });
 });
 
+app.get("/player-ppt", (req, res) => {
+  const query = req.query;
+
+  if (!query.mode) {
+    res.status(404).json({ Error: "Invalid Request" });
+    return;
+  }
+
+  const sql = `
+    SELECT 
+        playerName, 
+        SUM(actionCount) AS totalActionCount, 
+        SUM(actionValue * actionCount) AS totalActionValue,
+        CASE 
+            WHEN SUM(actionCount) = 0 THEN 0
+            ELSE SUM(actionValue * actionCount) / SUM(actionCount)
+        END AS averageValuePerAction
+      FROM 
+        player_actions
+      WHERE 
+        mode = '${query.mode}'
+      GROUP BY 
+        playerName
+      ORDER BY 
+        averageValuePerAction DESC;
+  `;
+
+  db.all(sql, [], (err, rows: any) => {
+    if (err) {
+      res.status(500).send(err.message);
+    } else {
+      let obj: any = {};
+
+      for (let entry of rows) {
+        obj[entry.playerName] =
+          Math.round(entry.averageValuePerAction * 1000) / 1000;
+      }
+
+      res.status(200).json(obj);
+    }
+  });
+});
+
+app.get("/player-tt", (req, res) => {
+  const query = req.query;
+
+  if (!query.mode) {
+    res.status(404).json({ Error: "Invalid Request" });
+    return;
+  }
+
+  const sql = `
+    SELECT 
+        playerName, 
+        SUM(actionCount) AS totalActionCount, 
+        SUM(actionValue * actionCount) AS totalActionValue,
+        CASE 
+            WHEN SUM(actionCount) = 0 THEN 0
+            ELSE SUM(actionValue * actionCount) * 1.0 / SUM(actionCount)
+        END AS averageValuePerAction
+      FROM 
+        player_actions
+      WHERE 
+        mode = '${query.mode}'
+      GROUP BY 
+        playerName
+      ORDER BY 
+        averageValuePerAction DESC;
+  `;
+
+  db.all(sql, [], (err, rows: any) => {
+    if (err) {
+      res.status(500).send(err.message);
+    } else {
+      let obj: any = {};
+
+      for (let entry of rows) {
+        obj[entry.playerName] = entry.totalActionCount;
+      }
+
+      res.status(200).json(obj);
+    }
+  });
+});
+
 app.get("/total-games-played", (req, res) => {
   const query = req.query;
 
