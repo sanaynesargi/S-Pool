@@ -39,21 +39,23 @@ db.serialize(() => {
 
   db.run(`CREATE TABLE IF NOT EXISTS player_standings (
     playerName TEXT,
-    standing INTEGER
+    standing INTEGER,
+    mode TEXT
   )`);
 });
 
-const incrementGamesPlayed = (playerNames: string[]) => {
+const incrementGamesPlayed = (playerNames: string[], mode: any) => {
   return new Promise<void>((resolve, reject) => {
     // Create an array of placeholders like "(?, 1)"
-    const placeholders = playerNames.map(() => "(?, 1)").join(", ");
+    const placeholders = playerNames.map(() => `(?, 1, '${mode}')`).join(", ");
     // Create an array of values [playerName1, playerName2, ...]
     const values = playerNames;
     const sql = `
-      INSERT INTO player_games (playerName, gamesPlayed)
+      INSERT INTO player_games (playerName, gamesPlayed, mode)
       VALUES ${placeholders}
-      ON CONFLICT(playerName) DO UPDATE SET gamesPlayed = gamesPlayed + 1
-    `;
+      ON CONFLICT(playerName, mode) DO UPDATE SET
+      gamesPlayed = player_games.gamesPlayed + 1
+  `;
 
     db.run(sql, values, (err) => {
       if (err) {
@@ -70,14 +72,17 @@ const incrementMiniGamesPlayed = (a: any, mode: string) => {
     const playerNames = Object.entries(a);
     // Create an array of placeholders like "(?, 1)"
 
-    const placeholders = playerNames.map(() => "(?, ?)").join(", ");
+    const placeholders = playerNames.map(() => "(?, ?, ?)").join(", ");
     const values = playerNames.flatMap((a: any) => [a[0], a[1], mode]);
 
     const sql = `
-      INSERT INTO player_tournament_games (playerName, gamesPlayed, mode)
-      VALUES ${placeholders}
-      ON CONFLICT(playerName) DO UPDATE SET gamesPlayed = gamesPlayed + 1
-    `;
+    INSERT INTO player_tournament_games (playerName, gamesPlayed, mode)
+    VALUES ${placeholders}
+    ON CONFLICT (playerName, mode)
+    DO UPDATE SET
+    gamesPlayed = player_tournament_games.gamesPlayed + EXCLUDED.gamesPlayed,
+    mode = EXCLUDED.mode;
+  `;
 
     db.run(sql, values, (err) => {
       if (err) {
@@ -174,14 +179,23 @@ const addPlayerActions = (actions: PlayerAction[], mode: string) => {
   });
 };
 
-const addPlayerStandings = async (standings: any) => {
+const addPlayerStandings = async (standings: any, mode: string) => {
   return new Promise<void>((resolve, reject) => {
-    const newStandings = Object.entries(standings);
+    let currentStandings = Object.entries(standings);
+    let newStandings: any = [];
 
-    const placeholders = newStandings.map(() => "(?, ?)").join(", ");
+    for (const elem of currentStandings) {
+      if (elem[1] == 0) {
+        continue;
+      }
+
+      newStandings.push(elem);
+    }
+
+    const placeholders = newStandings.map(() => `(?, ?, '${mode}')`).join(", ");
     const values = newStandings.flatMap((a: any) => [a[0], a[1]]);
 
-    const sql = `INSERT INTO player_standings (playerName, standing) VALUES ${placeholders}`;
+    const sql = `INSERT INTO player_standings (playerName, standing, mode) VALUES ${placeholders}`;
 
     db.serialize(() => {
       db.run("BEGIN TRANSACTION");
@@ -208,9 +222,9 @@ const endGame = async (actions: any) => {
 
     await addPlayerActions(actions.playerActionCounts!, actions.mode!);
     const playerNames = Object.keys(actions.playerActionCounts!);
-    await incrementGamesPlayed(playerNames);
+    await incrementGamesPlayed(playerNames, actions.mode!);
     await incrementMiniGamesPlayed(actions.playerGameCounts!, actions.mode!);
-    await addPlayerStandings(actions.standings!);
+    await addPlayerStandings(actions.standings!, actions.mode!);
     console.log("Game Ended!");
   } catch (error) {
     console.error("Error ending game:", error);
@@ -275,7 +289,7 @@ app.get("/average-points-per-game", (req, res) => {
            IFNULL(b.gamesPlayed, 0) as gamesPlayed
     FROM player_actions a
     LEFT JOIN player_games b ON a.playerName = b.playerName
-    WHERE mode = '${query.mode}'
+    WHERE a.mode = '${query.mode}' AND b.mode = '${query.mode}'
     GROUP BY a.playerName
   `;
 
@@ -329,10 +343,17 @@ app.get("/average-points-per-tournament-game", (req, res) => {
   });
 });
 
-app.get("/average-standings-per-game", (_, res) => {
+app.get("/average-standings-per-game", (req, res) => {
+  const query = req.query;
+
+  if (!query.mode) {
+    res.status(404).json({ Error: "Invalid Request" });
+    return;
+  }
+
   const sql = `
     SELECT playerName, AVG(standing) AS average_standing
-    FROM player_standings
+    FROM player_standings WHERE mode = '${query.mode}'
     GROUP BY playerName;
   `;
 
@@ -351,10 +372,17 @@ app.get("/average-standings-per-game", (_, res) => {
   });
 });
 
-app.get("/total-tournaments-played", (_, res) => {
+app.get("/total-tournaments-played", (req, res) => {
+  const query = req.query;
+
+  if (!query.mode) {
+    res.status(404).json({ Error: "Invalid Request" });
+    return;
+  }
+
   const sql = `
     SELECT playerName, gamesPlayed
-    FROM player_games
+    FROM player_games WHERE mode = '${query.mode}'
   `;
 
   db.all(sql, [], (err, rows: any) => {
@@ -482,6 +510,111 @@ app.get("/total-games-played", (req, res) => {
       }
 
       res.status(200).json(obj);
+    }
+  });
+});
+
+app.get("/player-actions-stats", (req, res) => {
+  const query = req.query;
+
+  if (!query.mode) {
+    res
+      .status(404)
+      .json({ Error: "Invalid Request: mode parameter is required" });
+    return;
+  }
+
+  const sql = `
+    SELECT 
+        playerName, 
+        actionType,
+        SUM(actionCount) AS totalActionCount, 
+        SUM(actionValue * actionCount) AS totalActionValue
+    FROM 
+        player_actions
+    WHERE 
+        mode = '${query.mode}'
+    GROUP BY 
+        playerName, actionType
+    ORDER BY 
+        playerName, actionType;
+  `;
+
+  db.all(sql, [], (err, rows: any) => {
+    if (err) {
+      res.status(500).send(err.message);
+    } else {
+      let stats: any = {};
+
+      for (let entry of rows) {
+        if (!stats[entry.playerName]) {
+          stats[entry.playerName] = [];
+        }
+        stats[entry.playerName].push({
+          actionType: entry.actionType,
+          totalActionCount: entry.totalActionCount,
+          totalActionValue: entry.totalActionValue,
+        });
+      }
+
+      res.status(200).json(stats);
+    }
+  });
+});
+
+app.get("/player-actions-stats-averages", (req, res) => {
+  const query = req.query;
+
+  if (!query.mode) {
+    res
+      .status(404)
+      .json({ Error: "Invalid Request: mode parameter is required" });
+    return;
+  }
+
+  const sql = `
+    SELECT 
+    pa.playerName, 
+    pa.actionType,
+    SUM(pa.actionCount) AS actionCount, 
+    SUM(pa.actionValue * pa.actionCount) AS actionValue,
+    pg.gamesPlayed
+    FROM 
+        player_actions pa
+    JOIN 
+        player_games pg ON pa.playerName = pg.playerName AND pa.mode = pg.mode
+    WHERE 
+        pa.mode = '${query.mode}'
+    GROUP BY 
+        pa.playerName, pa.actionType, pg.gamesPlayed
+    ORDER BY 
+        pa.playerName, pa.actionType;
+  `;
+
+  db.all(sql, [], (err, rows: any) => {
+    if (err) {
+      res.status(500).send(err.message);
+    } else {
+      let stats: any = {};
+
+      for (let entry of rows) {
+        if (!stats[entry.playerName]) {
+          stats[entry.playerName] = [];
+        }
+        stats[entry.playerName].push({
+          actionType: entry.actionType,
+          gamesPlayed: entry.gamesPlayed,
+          count: entry.actionCount,
+
+          averageActionCount: entry.actionCount / entry.gamesPlayed,
+          averageActionValue:
+            (entry.actionCount / entry.gamesPlayed) * entry.actionValue,
+        });
+      }
+
+      // console.log(stats);
+
+      res.status(200).json(stats);
     }
   });
 });

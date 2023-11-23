@@ -17,6 +17,7 @@
     "typescript": "^5.2.2"
   },
   "scripts": {
-    "start": "nodemon"
+    "start": "nodemon",
+    "watch": "tsc -w"
   }
 }

@@ -14,6 +14,17 @@ import {
   VStack,
 } from "@chakra-ui/react";
 
+function arrayUnique(array: any) {
+  var a = array.concat();
+  for (var i = 0; i < a.length; ++i) {
+    for (var j = i + 1; j < a.length; ++j) {
+      if (a[i] === a[j]) a.splice(j--, 1);
+    }
+  }
+
+  return a;
+}
+
 const PlayerStats = () => {
   const [players, setPlayers] = useState([]);
   const [filteredPlayers, setFilteredPlayers] = useState([]);
@@ -35,7 +46,12 @@ const PlayerStats = () => {
             "http://localhost:8000/average-points-per-game?mode=doubles"
           ),
 
-          axios.get("http://localhost:8000/average-standings-per-game"),
+          axios.get(
+            "http://localhost:8000/average-standings-per-game?mode=singles"
+          ),
+          axios.get(
+            "http://localhost:8000/average-standings-per-game?mode=doubles"
+          ),
 
           axios.get("http://localhost:8000/player-ppt?mode=singles"),
           axios.get("http://localhost:8000/player-ppt?mode=doubles"),
@@ -50,7 +66,12 @@ const PlayerStats = () => {
           axios.get("http://localhost:8000/total-games-played?mode=singles"),
           axios.get("http://localhost:8000/total-games-played?mode=doubles"),
 
-          axios.get("http://localhost:8000/total-tournaments-played"),
+          axios.get(
+            "http://localhost:8000/total-tournaments-played?mode=singles"
+          ),
+          axios.get(
+            "http://localhost:8000/total-tournaments-played?mode=doubles"
+          ),
 
           axios.get("http://localhost:8000/player-tt?mode=singles"),
           axios.get("http://localhost:8000/player-tt?mode=doubles"),
@@ -61,14 +82,16 @@ const PlayerStats = () => {
           totalPointsDoubles,
           avgPointsPerGameSingles,
           avgPointsPerGameDoubles,
-          avgStandingsPerGame,
+          avgStandingsPerGameSingles,
+          avgStandingsPerGameDoubles,
           avgPPTSingles,
           avgPPTDoubles,
           avgStandingsPerTGameSingles,
           avgStandingsPerTGameDoubles,
           totalGamesPlayedSingles,
           totalGamesPlayedDoubles,
-          totalTournamentsPlayed,
+          totalTournamentsPlayedSingles,
+          totalTournamentsPlayedDoubles,
           TTSingles,
           TTDoubles,
         ] = responses.map((res) => res.data);
@@ -78,34 +101,44 @@ const PlayerStats = () => {
           totalPointsDoubles,
           avgPointsPerGameSingles,
           avgPointsPerGameDoubles,
-          avgStandingsPerGame,
+          avgStandingsPerGameSingles,
+          avgStandingsPerGameDoubles,
           avgPPTSingles,
           avgPPTDoubles,
           avgStandingsPerTGameSingles,
           avgStandingsPerTGameDoubles,
           totalGamesPlayedSingles,
           totalGamesPlayedDoubles,
-          totalTournamentsPlayed,
+          totalTournamentsPlayedSingles,
+          totalTournamentsPlayedDoubles,
           TTSingles,
           TTDoubles,
         });
 
-        const playersArray = Object.keys(totalPointsSingles).map((player) => ({
+        const playersArray = arrayUnique(
+          Object.keys(totalPointsSingles).concat(
+            Object.keys(totalPointsDoubles)
+          )
+        ).map((player: any) => ({
           name: player,
-          totalPointsS: totalPointsSingles[player],
-          totalPointsD: totalPointsDoubles[player],
-          avgPointsPerGameS: avgPointsPerGameSingles[player],
-          avgPointsPerGameD: avgPointsPerGameDoubles[player],
-          avgStandingsPerGame: avgStandingsPerGame[player],
-          avgPPTSingles: avgPPTSingles[player],
-          avgPPTDoubles: avgPPTDoubles[player],
-          avgStandingsPerTGameS: avgStandingsPerTGameSingles[player],
-          avgStandingsPerTGameD: avgStandingsPerTGameDoubles[player],
-          totalGamesPlayedS: totalGamesPlayedSingles[player],
-          totalGamesPlayedD: totalGamesPlayedDoubles[player],
-          totalTournamentsPlayed: totalTournamentsPlayed[player],
-          TTSingles: TTSingles[player],
-          TTDoubles: TTDoubles[player],
+          totalPointsS: totalPointsSingles[player] ?? 0,
+          totalPointsD: totalPointsDoubles[player] ?? 0,
+          avgPointsPerGameS: avgPointsPerGameSingles[player] ?? 0,
+          avgPointsPerGameD: avgPointsPerGameDoubles[player] ?? 0,
+          avgStandingsPerGameSingles: avgStandingsPerGameSingles[player] ?? 0,
+          avgStandingsPerGameDoubles: avgStandingsPerGameDoubles[player] ?? 0,
+          avgPPTSingles: avgPPTSingles[player] ?? 0,
+          avgPPTDoubles: avgPPTDoubles[player] ?? 0,
+          avgStandingsPerTGameS: avgStandingsPerTGameSingles[player] ?? 0,
+          avgStandingsPerTGameD: avgStandingsPerTGameDoubles[player] ?? 0,
+          totalGamesPlayedS: totalGamesPlayedSingles[player] ?? 0,
+          totalGamesPlayedD: totalGamesPlayedDoubles[player] ?? 0,
+          totalTournamentsPlayedSingles:
+            totalTournamentsPlayedSingles[player] ?? 0,
+          totalTournamentsPlayedDoubles:
+            totalTournamentsPlayedDoubles[player] ?? 0,
+          TTSingles: TTSingles[player] ?? 0,
+          TTDoubles: TTDoubles[player] ?? 0,
         }));
 
         setPlayers(playersArray as any);
@@ -155,8 +188,11 @@ const PlayerStats = () => {
           <option value="totalGamesPlayedD">
             Total Games Played (Doubles)
           </option>
-          <option value="totalTournamentsPlayed">
-            Total Tournaments Played
+          <option value="totalTournamentsPlayedSingles">
+            Total Tournaments Played (Singles)
+          </option>
+          <option value="totalTournamentsPlayedDoubles">
+            Total Tournaments Played (Doubles)
           </option>
           <option value="avgPointsPerGameS">
             Average Points Per Tournament (Singles)
@@ -164,8 +200,11 @@ const PlayerStats = () => {
           <option value="avgPointsPerGameD">
             Average Points Per Tournament (Doubles)
           </option>
-          <option value="avgStandingsPerGame">
-            Average Standings Per Tournament
+          <option value="avgStandingsPerGameSingles">
+            Average Standings Per Tournament (Singles)
+          </option>
+          <option value="avgStandingsPerGameDoubles">
+            Average Standings Per Tournament (Doubles)
           </option>
           <option value="avgPPTSingles">
             Average Points Per Stroke (Singles)

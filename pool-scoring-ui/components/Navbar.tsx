@@ -59,6 +59,8 @@ const Navbar: React.FC<NavBarProps> = ({
     onAddPlayers([]);
     localStorage.removeItem("players");
     localStorage.removeItem("nameGridState");
+    localStorage.removeItem("playerScores");
+    localStorage.removeItem("isGameStarted");
   };
 
   const handleEndGame = async () => {
@@ -85,18 +87,6 @@ const Navbar: React.FC<NavBarProps> = ({
 
       <Flex>
         <Button
-          bg="#4FD1C5"
-          color="#FFF"
-          _hover={{ bg: "#38B2AC", color: "#FFF" }}
-          fontSize="sm"
-          mr={2}
-          isDisabled={isGameStarted && players.length > 0}
-          onClick={handleOpenModal}
-          boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
-        >
-          Add Players
-        </Button>
-        <Button
           bg="#68D391"
           color="#FFF"
           _hover={{ bg: "#48BB78", color: "#FFF" }}
@@ -110,15 +100,16 @@ const Navbar: React.FC<NavBarProps> = ({
           Mode: {mode ? "Singles" : "Doubles"}
         </Button>
         <Button
-          bg="#68D391"
+          bg="#4FD1C5"
           color="#FFF"
-          _hover={{ bg: "#48BB78", color: "#FFF" }}
+          _hover={{ bg: "#38B2AC", color: "#FFF" }}
           fontSize="sm"
           mr={2}
-          onClick={handleStartGame}
+          isDisabled={isGameStarted && players.length > 0}
+          onClick={handleOpenModal}
           boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
         >
-          Start Game
+          Add Players
         </Button>
         <Button
           bg="#FC8181"
@@ -130,6 +121,17 @@ const Navbar: React.FC<NavBarProps> = ({
           boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
         >
           Clear Players
+        </Button>
+        <Button
+          bg="#68D391"
+          color="#FFF"
+          _hover={{ bg: "#48BB78", color: "#FFF" }}
+          fontSize="sm"
+          mr={2}
+          onClick={handleStartGame}
+          boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
+        >
+          Start Game
         </Button>
         <Button
           bg="#F6AD55"

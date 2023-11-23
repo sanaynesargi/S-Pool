@@ -7,10 +7,22 @@ import {
   Text,
   Center,
   Spacer,
+  useToast,
+  VStack,
+  Icon,
+  IconButton,
+  HStack,
+  NumberDecrementStepper,
+  NumberIncrementStepper,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
 } from "@chakra-ui/react";
 import ActionModal, { ActionType } from "./ActionModal";
 import LeaderboardModal from "./LeaderboardModal";
 import PlayerDetailsModal from "./PlayerDetailsModal";
+import { ArrowDownIcon, ArrowUpIcon } from "@chakra-ui/icons";
+import { SP } from "next/dist/shared/lib/utils";
 
 interface NameGridProps {
   names: string[];
@@ -20,6 +32,7 @@ interface NameGridProps {
   standings: any;
   setStandings: any;
   updateGameCountsCallback: any;
+  isGameStarted: boolean;
 }
 
 interface Action {
@@ -59,6 +72,7 @@ const NameGrid: React.FC<NameGridProps> = ({
   standings,
   setStandings,
   updateGameCountsCallback,
+  isGameStarted,
 }) => {
   const [playerGamesPlayed, setPlayerGamesPlayed] = useState<any>({});
   const columns = 7;
@@ -233,6 +247,8 @@ const NameGrid: React.FC<NameGridProps> = ({
   const actionBgColor = "#2D3748";
   const defaultBgColor = "#393D47";
 
+  const errorToast = useToast();
+
   return (
     <>
       <Flex justifyContent="center" alignItems="center" mb={4}>
@@ -263,70 +279,107 @@ const NameGrid: React.FC<NameGridProps> = ({
               boxShadow="0 4px 8px 0 rgba(0,0,0,0.2)"
               bg={isNameCell ? defaultBgColor : actionBgColor}
               cursor={isNameCell ? "default" : "pointer"}
-              onClick={
-                isNameCell
-                  ? () => onNameClick(name)
-                  : () => handleNonNameCellClick(index)
-              }
+              onClick={() => {
+                if (!isGameStarted) {
+                  errorToast({
+                    title: "Error Starting Game",
+                    description:
+                      "Please click 'Start Game' to finalize players and start your game.",
+                    status: "error",
+                    duration: 3000,
+                    isClosable: true,
+                  });
+                  return;
+                }
+                if (isNameCell) {
+                  onNameClick(name);
+                } else {
+                  handleNonNameCellClick(index);
+                }
+              }}
             >
               {isNameCell ? (
                 <Center>
                   <Text fontSize="lg" fontWeight="bold">
                     {name}
                   </Text>
-                  <Box ml={2}>
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleScoreClick(name);
-                      }}
-                    >
-                      Score
-                    </Button>
-                    <Spacer w={4} h={2} />
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        let newTotal;
+                  <Box ml={4}>
+                    <HStack justifyContent="space-evenly">
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleScoreClick(name);
+                        }}
+                      >
+                        Score
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          let newTotal;
 
-                        if (standings[name] == maxNum) {
-                          newTotal = 0;
-                        } else {
-                          newTotal = standings[name] + 1;
-                        }
+                          if (standings[name] == maxNum) {
+                            newTotal = 0;
+                          } else {
+                            newTotal = standings[name] + 1;
+                          }
 
-                        let newStandings = standings;
-                        newStandings[name] = newTotal;
+                          let newStandings = standings;
+                          newStandings[name] = newTotal;
 
-                        setStandings(newStandings);
-                        forceUpdate();
-                      }}
-                      colorScheme="twitter"
-                      type="button"
-                    >
-                      Rk: {standings[name]}
-                    </Button>
-                    <Spacer w={4} h={2} />
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
+                          setStandings(newStandings);
+                          forceUpdate();
+                        }}
+                        colorScheme="twitter"
+                        type="button"
+                      >
+                        Rk: {standings[name]}
+                      </Button>
+                    </HStack>
+                    <Spacer w={4} h={4} />
+                    <HStack bgColor="gray.600" p={2} borderRadius="md">
+                      <IconButton
+                        icon={<ArrowUpIcon />}
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
 
-                        let newGames = playerGamesPlayed;
-                        newGames[name] = newGames[name] + 1;
+                          let newGames = playerGamesPlayed;
+                          newGames[name] = newGames[name] + 1;
 
-                        setPlayerGamesPlayed(newGames);
+                          setPlayerGamesPlayed(newGames);
 
-                        updateGameCountsCallback(newGames);
-                        forceUpdate();
-                      }}
-                      type="button"
-                      colorScheme="orange"
-                    >
-                      GP: {playerGamesPlayed[name]}
-                    </Button>
+                          updateGameCountsCallback(newGames);
+                          forceUpdate();
+                        }}
+                        type="button"
+                        colorScheme="orange"
+                        aria-label="down"
+                      />
+                      <Button onClick={undefined} size="sm" colorScheme="teal">
+                        GP: {playerGamesPlayed[name]}
+                      </Button>
+                      <IconButton
+                        aria-label="down"
+                        icon={<ArrowDownIcon />}
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+
+                          let newGames = playerGamesPlayed;
+                          newGames[name] = newGames[name] - 1;
+
+                          setPlayerGamesPlayed(newGames);
+
+                          updateGameCountsCallback(newGames);
+                          forceUpdate();
+                        }}
+                        type="button"
+                        colorScheme="orange"
+                      />
+                    </HStack>
                   </Box>
                 </Center>
               ) : (
