@@ -582,7 +582,7 @@ app.get("/player-actions-stats-averages", (req, res) => {
     FROM 
         player_actions pa
     JOIN 
-        player_games pg ON pa.playerName = pg.playerName AND pa.mode = pg.mode
+        player_tournament_games pg ON pa.playerName = pg.playerName AND pa.mode = pg.mode
     WHERE 
         pa.mode = '${query.mode}'
     GROUP BY 
@@ -612,8 +612,64 @@ app.get("/player-actions-stats-averages", (req, res) => {
         });
       }
 
-      // console.log(stats);
+      if (query.mode == "singles") {
+        console.log(stats);
+      }
 
+      res.status(200).json(stats);
+    }
+  });
+});
+
+app.get("/player-actions-stats-average-tournaments", (req, res) => {
+  const query = req.query;
+
+  if (!query.mode) {
+    res
+      .status(404)
+      .json({ Error: "Invalid Request: mode parameter is required" });
+    return;
+  }
+
+  const sql = `
+    SELECT 
+    pa.playerName, 
+    pa.actionType,
+    SUM(pa.actionCount) AS actionCount, 
+    SUM(pa.actionValue * pa.actionCount) AS actionValue,
+    pg.gamesPlayed
+    FROM 
+        player_actions pa
+    JOIN 
+        player_games pg ON pa.playerName = pg.playerName AND pa.mode = pg.mode
+    WHERE 
+        pa.mode = '${query.mode}'
+    GROUP BY 
+        pa.playerName, pa.actionType, pg.gamesPlayed
+    ORDER BY 
+        pa.playerName, pa.actionType;
+  `;
+
+  db.all(sql, [], (err, rows: any) => {
+    if (err) {
+      res.status(500).send(err.message);
+    } else {
+      let stats: any = {};
+
+      for (let entry of rows) {
+        if (!stats[entry.playerName]) {
+          stats[entry.playerName] = [];
+        }
+        stats[entry.playerName].push({
+          actionType: entry.actionType,
+          gamesPlayed: entry.gamesPlayed,
+          count: entry.actionCount,
+
+          averageActionCount: entry.actionCount / entry.gamesPlayed,
+          averageActionValue:
+            (entry.actionCount / entry.gamesPlayed) * entry.actionValue,
+        });
+      }
       res.status(200).json(stats);
     }
   });

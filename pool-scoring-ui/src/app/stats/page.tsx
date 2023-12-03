@@ -151,6 +151,17 @@ const PlayerStats = () => {
     fetchData();
   }, []);
 
+  function roundTo(n: number, digits: number) {
+    if (digits === undefined) {
+      digits = 0;
+    }
+
+    var multiplicator = Math.pow(10, digits);
+    n = parseFloat((n * multiplicator).toFixed(11));
+    var test = Math.round(n) / multiplicator;
+    return +test.toFixed(digits);
+  }
+
   useEffect(() => {
     const filtered = players
       .filter((player: any) =>
@@ -158,7 +169,7 @@ const PlayerStats = () => {
       )
       .sort((a, b) => {
         if (
-          filter == "avgStandingsPerGame" ||
+          filter.includes("avgStandingsPerGame") ||
           filter.includes("totalGamesPlayed")
         ) {
           return a[filter] - b[filter];
@@ -235,7 +246,7 @@ const PlayerStats = () => {
             <Tr key={player.name}>
               <Td>{index + 1}</Td>
               <Td>{player.name}</Td>
-              <Td isNumeric>{player[filter]}</Td>
+              <Td isNumeric>{roundTo(player[filter], 2)}</Td>
             </Tr>
           ))}
         </Tbody>

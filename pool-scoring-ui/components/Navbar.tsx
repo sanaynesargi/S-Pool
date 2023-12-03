@@ -126,6 +126,7 @@ const Navbar: React.FC<NavBarProps> = ({
           bg="#68D391"
           color="#FFF"
           _hover={{ bg: "#48BB78", color: "#FFF" }}
+          isDisabled={players.length == 0}
           fontSize="sm"
           mr={2}
           onClick={handleStartGame}
@@ -139,6 +140,7 @@ const Navbar: React.FC<NavBarProps> = ({
           _hover={{ bg: "#ED8936", color: "#FFF" }}
           fontSize="sm"
           onClick={handleEndGame}
+          isDisabled={!isGameStarted}
           boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
         >
           End Game

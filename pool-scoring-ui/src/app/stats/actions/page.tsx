@@ -69,9 +69,11 @@ const ActionsPage = () => {
   const [dataDoubles, setDataDoubles] = useState(null);
   const [dataSinglesA, setDataSinglesA] = useState(null);
   const [dataDoublesA, setDataDoublesA] = useState(null);
+  const [dataSinglesAT, setDataSinglesAT] = useState(null);
+  const [dataDoublesAT, setDataDoublesAT] = useState(null);
 
   const [mode, setMode] = useState(false);
-  const [type, setType] = useState(false);
+  const [type, setType] = useState(0);
   const [, forceUpdate] = useReducer((x: any) => x + 1, 0);
 
   const colors = [
@@ -96,11 +98,19 @@ const ActionsPage = () => {
       axios.get(
         `http://localhost:8000/player-actions-stats-averages?mode=doubles`
       ),
+      axios.get(
+        `http://localhost:8000/player-actions-stats-average-tournaments?mode=singles`
+      ),
+      axios.get(
+        `http://localhost:8000/player-actions-stats-average-tournaments?mode=doubles`
+      ),
     ]).then((results) => {
       setDataSingles(formatData(results[0].data));
       setDataDoubles(formatData(results[1].data));
       setDataSinglesA(formatData(results[2].data));
       setDataDoublesA(formatData(results[3].data));
+      setDataSinglesAT(formatData(results[4].data));
+      setDataDoublesAT(formatData(results[5].data));
     });
   }, []);
 
@@ -115,18 +125,21 @@ const ActionsPage = () => {
               <VStack>
                 <Heading p={4}>Action Graphs</Heading>
                 <RadioGroup
-                  defaultValue="1"
-                  onChange={() => {
-                    setType(!type);
+                  defaultValue="0"
+                  onChange={(value) => {
+                    setType(parseInt(value));
                     forceUpdate();
                   }}
                 >
                   <Stack spacing={5} direction="row">
-                    <Radio colorScheme="red" value="1">
+                    <Radio colorScheme="red" value="0">
                       Totals
                     </Radio>
+                    <Radio colorScheme="green" value="1">
+                      Averages Per Game
+                    </Radio>
                     <Radio colorScheme="green" value="2">
-                      Averages
+                      Averages Per Tournament
                     </Radio>
                   </Stack>
                 </RadioGroup>
@@ -160,12 +173,16 @@ const ActionsPage = () => {
                   <BarChart
                     data={
                       !mode
-                        ? type
+                        ? type == 0
+                          ? dataSingles![stat]
+                          : type == 1
                           ? dataSinglesA![stat]
-                          : dataSingles![stat]
-                        : type
+                          : dataSinglesAT![stat]
+                        : type == 0
+                        ? dataDoubles![stat]
+                        : type == 1
                         ? dataDoublesA![stat]
-                        : dataDoubles![stat]
+                        : dataDoublesAT![stat]
                     }
                     margin={{
                       top: 5,

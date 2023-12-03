@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   Button,
@@ -18,6 +18,10 @@ const HomePage: React.FC = () => {
   const handleNavigation = (path: string) => {
     router.push(path);
   };
+
+  useEffect(() => {
+    localStorage.setItem("chakra-ui-color-mode", "dark");
+  }, []);
 
   return (
     <Flex
