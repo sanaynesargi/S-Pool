@@ -19,6 +19,7 @@ import {
   NumberInputStepper,
 } from "@chakra-ui/react";
 import ActionModal, { ActionType } from "./ActionModal";
+import MatchupPage from "./MatchupCreator";
 import LeaderboardModal from "./LeaderboardModal";
 import PlayerDetailsModal from "./PlayerDetailsModal";
 import { ArrowDownIcon, ArrowUpIcon } from "@chakra-ui/icons";
@@ -413,15 +414,18 @@ const NameGrid: React.FC<NameGridProps> = ({
             : []
         }
       />
-      <Center>
-        <Button
-          colorScheme="blue"
-          onClick={() => setIsLeaderboardModalOpen(true)}
-          mt={4}
-        >
-          Show Leaderboard
-        </Button>
+      <Center mt={4}>
+        <HStack spacing={3}>
+          <Button
+            colorScheme="blue"
+            onClick={() => setIsLeaderboardModalOpen(true)}
+          >
+            Show Leaderboard
+          </Button>
+          <MatchupPage players={names} />
+        </HStack>
       </Center>
+
       <LeaderboardModal
         isOpen={isLeaderboardModalOpen}
         onClose={() => setIsLeaderboardModalOpen(false)}

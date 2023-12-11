@@ -75,6 +75,15 @@ const HomePage: React.FC = () => {
           >
             View Adv. Statistics
           </Button>
+          <Button
+            size="lg"
+            colorScheme="purple"
+            width="200px"
+            height="60px"
+            onClick={() => handleNavigation("/h2h")}
+          >
+            View H2H Statistics
+          </Button>
         </VStack>
       </Container>
     </Flex>

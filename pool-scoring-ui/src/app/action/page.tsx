@@ -1,9 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Box, Text, useToast } from "@chakra-ui/react";
+import { Box, HStack, Text, useToast } from "@chakra-ui/react";
 import Navbar from "../../../components/Navbar";
 import PlayerGrid, { PlayerActionCounts } from "../../../components/PlayerGrid";
 import axios from "axios";
+import MatchupsPage from "../../../components/MatchupCreator";
 
 const clearNameGridStateStorage = () => {
   localStorage.removeItem("nameGridState");
@@ -33,11 +34,20 @@ const Home: React.FC = () => {
     clearNameGridStateStorage();
 
     try {
+      let matches = localStorage.getItem("matches");
+
+      if (!matches) {
+        return;
+      }
+
+      matches = JSON.parse(matches);
+
       await axios.post("http://localhost:8000/end-game", {
         playerActionCounts,
         mode: mode ? "singles" : "doubles",
         standings,
         playerGameCounts,
+        matches,
       });
       console.log("Game ended and actions saved successfully");
     } catch (error) {
