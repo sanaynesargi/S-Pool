@@ -62,7 +62,7 @@ const HomePage: React.FC = () => {
             colorScheme="red"
             width="200px"
             height="60px"
-            onClick={() => handleNavigation("/h2h")}
+            onClick={() => handleNavigation("/rankings")}
           >
             View Power Rankings
           </Button>

@@ -11,9 +11,59 @@ import {
   Badge,
   useColorModeValue,
   ScaleFade,
+  Select,
+  HStack,
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useEffect, useState } from "react";
+import {
+  ScatterChart,
+  Scatter,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  LabelList,
+  Label,
+} from "recharts";
+
+const ScatterPlotComponent = ({ dictX, dictY }: any) => {
+  // Convert the dictionaries into an array of objects suitable for plotting
+  const data = dictX.map((obj: any, index: number) => {
+    return {
+      name: obj.name,
+      x: parseFloat(obj.number), // Convert string to float
+      y: parseFloat(dictY[index].number), // Convert string to float
+    };
+  });
+
+  console.log(data);
+
+  return (
+    <ScatterChart
+      width={500}
+      height={500}
+      margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+    >
+      {/* <CartesianGrid /> */}
+      <XAxis type="number" dataKey="x" name="PPG">
+        <Label value="Points Per Game" offset={-20} position="insideBottom" />
+      </XAxis>
+      <YAxis type="number" dataKey="y" name="PPT">
+        <Label
+          value="Points Per Tournament"
+          angle={-90}
+          position="outside"
+          offset={20}
+        />
+      </YAxis>
+      <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+      <Scatter name="Values" data={data} fill="#8884d8">
+        <LabelList dataKey="name" position="top" />
+      </Scatter>
+    </ScatterChart>
+  );
+};
 
 const getListItemStyle = (index: any) => {
   switch (index) {
@@ -42,6 +92,8 @@ const getListItemBg = (index: any, column: any) => {
   return "gray.600"; // Other ranks
 };
 
+const getDictXDictY = (inp: string) => {};
+
 const RankingsPage = () => {
   const bgColor = useColorModeValue("gray.700", "gray.800");
   const textColor = useColorModeValue("gray.100", "whiteAlpha.900");
@@ -51,6 +103,7 @@ const RankingsPage = () => {
   const [doublesGameData, setDoublesGameData] = useState([]);
   const [singlesTournamentData, setSinglesTournamentGameData] = useState([]);
   const [doublesTournamentData, setDoublesTournamentGameData] = useState([]);
+  const [mode, setMode] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -102,52 +155,86 @@ const RankingsPage = () => {
   return (
     <Container maxW="container.xl" py={5}>
       <VStack spacing={5}>
-        <Heading color={textColor}>Power Rankings</Heading>
-        <Box display="flex" justifyContent="space-around" width="100%">
-          {["Singles PPG", "Singles PPT", "Doubles PPG", "Doubles PPT"].map(
-            (category, columnIndex) => (
-              <VStack key={category} spacing={4}>
-                <Heading size="md" color={textColor}>
-                  {category}
-                </Heading>
-                <List spacing={3}>
-                  {[
-                    singlesGameData,
-                    singlesTournamentData,
-                    doublesGameData,
-                    doublesTournamentData,
-                  ][columnIndex].map((team: any, index) => {
-                    const { fontSize, padding, boxShadow } =
-                      getListItemStyle(index);
-                    return (
-                      <ScaleFade key={index} initialScale={0.9} in={true}>
-                        <ListItem
-                          p={padding}
-                          boxShadow={boxShadow}
-                          borderRadius="lg"
-                          bg={getListItemBg(index, columnIndex)}
-                          _hover={{ transform: "scale(1.05)" }}
-                          transition="all 0.2s ease-in-out"
-                        >
-                          <Text
-                            fontSize={fontSize}
-                            fontWeight="bold"
-                            color={textColor}
-                          >
-                            {`${index + 1}. ${team.name}`}
-                            <Badge ml={3} bg={badgeColor} borderRadius="5%">
-                              {team.number}
-                            </Badge>
-                          </Text>
-                        </ListItem>
-                      </ScaleFade>
-                    );
-                  })}
-                </List>
-              </VStack>
-            )
-          )}
-        </Box>
+        <Heading color={textColor} mb={10}>
+          {mode ? "Power Rankings" : "Power Ranking Graphs"}
+        </Heading>
+        {Object.keys(singlesGameData).length > 0 ? (
+          <Box display="flex" justifyContent="space-around" width="100%">
+            {["Singles PPG", "Singles PPT", "Doubles PPG", "Doubles PPT"].map(
+              (category, columnIndex) => (
+                <VStack key={category} spacing={4}>
+                  {mode ? (
+                    <>
+                      <Heading size="md" color={textColor}>
+                        {category}
+                      </Heading>
+                      <List spacing={3}>
+                        {[
+                          singlesGameData,
+                          singlesTournamentData,
+                          doublesGameData,
+                          doublesTournamentData,
+                        ][columnIndex].map((team: any, index) => {
+                          const { fontSize, padding, boxShadow } =
+                            getListItemStyle(index);
+                          return (
+                            <ScaleFade key={index} initialScale={0.9} in={true}>
+                              <ListItem
+                                p={padding}
+                                boxShadow={boxShadow}
+                                borderRadius="lg"
+                                bg={getListItemBg(index, columnIndex)}
+                                _hover={{ transform: "scale(1.05)" }}
+                                transition="all 0.2s ease-in-out"
+                              >
+                                <Text
+                                  fontSize={fontSize}
+                                  fontWeight="bold"
+                                  color={textColor}
+                                >
+                                  {`${index + 1}. ${team.name}`}
+                                  <Badge
+                                    ml={3}
+                                    bg={badgeColor}
+                                    borderRadius="5%"
+                                  >
+                                    {team.number}
+                                  </Badge>
+                                </Text>
+                              </ListItem>
+                            </ScaleFade>
+                          );
+                        })}
+                      </List>
+                    </>
+                  ) : null}
+                </VStack>
+              )
+            )}
+            {!mode ? (
+              <HStack justifyContent="space-around" w="100%">
+                <VStack>
+                  <Heading size="md">Singles</Heading>
+                  <ScatterPlotComponent
+                    dictX={singlesGameData}
+                    dictY={singlesTournamentData}
+                  />
+                </VStack>
+                <VStack>
+                  <Heading size="md">Doubles</Heading>
+                  <ScatterPlotComponent
+                    dictX={doublesGameData}
+                    dictY={doublesTournamentData}
+                  />
+                </VStack>
+              </HStack>
+            ) : null}
+          </Box>
+        ) : null}
+        <Select maxW="200px" onChange={() => setMode(!mode)}>
+          <option>Rankings</option>
+          <option>Graphs</option>
+        </Select>
       </VStack>
     </Container>
   );
