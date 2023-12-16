@@ -280,7 +280,7 @@ const endGame = async (actions: any) => {
   // });
 };
 
-app.post("/end-game", async (req, res) => {
+app.post("api/end-game", async (req, res) => {
   try {
     const actions: PlayerAction[] = req.body;
     await endGame(actions);
@@ -290,7 +290,7 @@ app.post("/end-game", async (req, res) => {
   }
 });
 
-app.get("/total-points", (req, res) => {
+app.get("api/total-points", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -317,7 +317,7 @@ app.get("/total-points", (req, res) => {
   });
 });
 
-app.get("/average-points-per-game", (req, res) => {
+app.get("api/average-points-per-game", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -351,7 +351,7 @@ app.get("/average-points-per-game", (req, res) => {
   });
 });
 
-app.get("/latest-tournament-points", (req, res) => {
+app.get("api/latest-tournament-points", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -396,7 +396,7 @@ app.get("/latest-tournament-points", (req, res) => {
   });
 });
 
-app.get("/average-points-per-tournament-game", (req, res) => {
+app.get("api/average-points-per-tournament-game", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -430,7 +430,7 @@ app.get("/average-points-per-tournament-game", (req, res) => {
   });
 });
 
-app.get("/average-standings-per-game", (req, res) => {
+app.get("api/average-standings-per-game", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -459,7 +459,7 @@ app.get("/average-standings-per-game", (req, res) => {
   });
 });
 
-app.get("/total-tournaments-played", (req, res) => {
+app.get("api/total-tournaments-played", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -487,7 +487,7 @@ app.get("/total-tournaments-played", (req, res) => {
   });
 });
 
-app.get("/player-ppt", (req, res) => {
+app.get("api/player-ppt", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -530,7 +530,7 @@ app.get("/player-ppt", (req, res) => {
   });
 });
 
-app.get("/player-tt", (req, res) => {
+app.get("api/player-tt", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -572,7 +572,7 @@ app.get("/player-tt", (req, res) => {
   });
 });
 
-app.get("/total-games-played", (req, res) => {
+app.get("api/total-games-played", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -601,7 +601,7 @@ app.get("/total-games-played", (req, res) => {
   });
 });
 
-app.get("/player-actions-stats", (req, res) => {
+app.get("api/player-actions-stats", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -649,7 +649,7 @@ app.get("/player-actions-stats", (req, res) => {
   });
 });
 
-app.get("/player-actions-stats-averages", (req, res) => {
+app.get("api/player-actions-stats-averages", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -704,7 +704,7 @@ app.get("/player-actions-stats-averages", (req, res) => {
   });
 });
 
-app.get("/player-actions-stats-average-tournaments", (req, res) => {
+app.get("api/player-actions-stats-average-tournaments", (req, res) => {
   const query = req.query;
 
   if (!query.mode) {
@@ -758,7 +758,7 @@ app.get("/player-actions-stats-average-tournaments", (req, res) => {
   });
 });
 
-app.get("/matchups", (req, res) => {
+app.get("api/matchups", (req, res) => {
   const { player1, player2, mode } = req.query as {
     player1: string;
     player2: string;
@@ -908,7 +908,7 @@ app.get("/matchups", (req, res) => {
   );
 });
 
-app.get("/matchups-p", (req, res) => {
+app.get("api/matchups-p", (req, res) => {
   const { player1, player2, mode } = req.query;
 
   if (!player1 || !player2 || !mode) {
@@ -1033,5 +1033,5 @@ app.get("/matchups-p", (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}/api`);
+  console.log(`Server running at http://localhost:${port}/api);
 });
