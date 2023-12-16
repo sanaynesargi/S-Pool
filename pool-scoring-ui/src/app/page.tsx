@@ -71,7 +71,7 @@ const HomePage: React.FC = () => {
             colorScheme="green"
             width="200px"
             height="60px"
-            onClick={() => handleNavigation("/stats")}
+            onClick={() => handleNavigation("/stats/simpleStats")}
           >
             View Statistics
           </Button>

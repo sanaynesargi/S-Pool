@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Box,
+  Button,
+  Center,
   Input,
   Select,
   Table,
@@ -13,6 +15,8 @@ import {
   Tr,
   VStack,
 } from "@chakra-ui/react";
+import { useRouter } from "next/navigation";
+import { ArrowBackIcon } from "@chakra-ui/icons";
 
 function arrayUnique(array: any) {
   var a = array.concat();
@@ -31,6 +35,7 @@ const PlayerStats = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("totalPointsS");
   const [stats, setStats] = useState({});
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -251,6 +256,14 @@ const PlayerStats = () => {
           ))}
         </Tbody>
       </Table>
+      <Center mt={"3vh"}>
+        <Button
+          onClick={() => router.push("/stats/simpleStats")}
+          leftIcon={<ArrowBackIcon />}
+        >
+          Simple Stats
+        </Button>
+      </Center>
     </VStack>
   );
 };
