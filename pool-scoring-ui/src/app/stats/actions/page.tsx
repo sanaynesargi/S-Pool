@@ -25,6 +25,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
+import { apiUrl } from "../../../../utils/utils";
 
 const formatData = (data: any) => {
   const names = Object.keys(data);
@@ -90,19 +91,15 @@ const ActionsPage = () => {
 
   useEffect(() => {
     Promise.all([
-      axios.get(`http://localhost:8000/player-actions-stats?mode=singles`),
-      axios.get(`http://localhost:8000/player-actions-stats?mode=doubles`),
+      axios.get(`http://${apiUrl}/player-actions-stats?mode=singles`),
+      axios.get(`http://${apiUrl}/player-actions-stats?mode=doubles`),
+      axios.get(`http://${apiUrl}/player-actions-stats-averages?mode=singles`),
+      axios.get(`http://${apiUrl}/player-actions-stats-averages?mode=doubles`),
       axios.get(
-        `http://localhost:8000/player-actions-stats-averages?mode=singles`
+        `http://${apiUrl}/player-actions-stats-average-tournaments?mode=singles`
       ),
       axios.get(
-        `http://localhost:8000/player-actions-stats-averages?mode=doubles`
-      ),
-      axios.get(
-        `http://localhost:8000/player-actions-stats-average-tournaments?mode=singles`
-      ),
-      axios.get(
-        `http://localhost:8000/player-actions-stats-average-tournaments?mode=doubles`
+        `http://${apiUrl}/player-actions-stats-average-tournaments?mode=doubles`
       ),
     ]).then((results) => {
       setDataSingles(formatData(results[0].data));

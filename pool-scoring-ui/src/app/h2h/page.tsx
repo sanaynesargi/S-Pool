@@ -57,21 +57,21 @@ const MatchupLookup = () => {
     const fetchPlayerRanks = async () => {
       try {
         const pointsPerGameRes = await axios.get(
-          `http://localhost:8000/average-points-per-game`,
+          `http://${apiUrl}/average-points-per-game`,
           { params: { mode } }
         );
         const pointsPerTournamentRes = await axios.get(
-          `http://localhost:8000/average-points-per-tournament-game`,
+          `http://${apiUrl}/average-points-per-tournament-game`,
           { params: { mode } }
         );
 
         const totalTournamentPlayedRes = await axios.get(
-          `http://localhost:8000/total-tournaments-played`,
+          `http://${apiUrl}/total-tournaments-played`,
           { params: { mode } }
         );
 
         const totalGamesRes = await axios.get(
-          `http://localhost:8000/total-games-played`,
+          `http://${apiUrl}/total-games-played`,
           { params: { mode } }
         );
 
@@ -140,7 +140,7 @@ const MatchupLookup = () => {
     }
 
     try {
-      const response = await axios.get(`http://localhost:8000${endpoint}`, {
+      const response = await axios.get(`http://${apiUrl}${endpoint}`, {
         params: { player1, player2, mode },
       });
       setMatchupData(response.data);

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Box, Table, Thead, Tbody, Tr, Th, Td } from "@chakra-ui/react";
+import { apiUrl } from "../../../../utils/utils";
 
 const BettingLines = () => {
   const [playerAverages, setPlayerAverages] = useState({
@@ -15,12 +16,8 @@ const BettingLines = () => {
     const fetchAverages = async () => {
       try {
         const [singlesResponse, doublesResponse] = await Promise.all([
-          axios.get(
-            "http://localhost:8000/average-points-per-game?mode=singles"
-          ),
-          axios.get(
-            "http://localhost:8000/average-points-per-game?mode=doubles"
-          ),
+          axios.get(`http://${apiUrl}/average-points-per-game?mode=singles`),
+          axios.get(`http://${apiUrl}/average-points-per-game?mode=doubles`),
         ]);
 
         setPlayerAverages({

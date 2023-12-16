@@ -26,6 +26,7 @@ import {
   LabelList,
   Label,
 } from "recharts";
+import { apiUrl } from "../../../utils/utils";
 
 const ScatterPlotComponent = ({ dictX, dictY }: any) => {
   // Convert the dictionaries into an array of objects suitable for plotting
@@ -108,22 +109,22 @@ const RankingsPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       const gamesResS = await axios.get(
-        `http://localhost:8000/average-points-per-tournament-game`,
+        `http://${apiUrl}/average-points-per-tournament-game`,
         { params: { mode: "singles" } }
       );
 
       const gamesResD = await axios.get(
-        `http://localhost:8000/average-points-per-tournament-game`,
+        `http://${apiUrl}/average-points-per-tournament-game`,
         { params: { mode: "doubles" } }
       );
 
       const tournamentsResS = await axios.get(
-        `http://localhost:8000/average-points-per-game`,
+        `http://${apiUrl}/average-points-per-game`,
         { params: { mode: "singles" } }
       );
 
       const tournamentsResD = await axios.get(
-        `http://localhost:8000/average-points-per-game`,
+        `http://${apiUrl}/average-points-per-game`,
         { params: { mode: "doubles" } }
       );
 
@@ -156,7 +157,7 @@ const RankingsPage = () => {
     <Container maxW="container.xl" py={5}>
       <VStack spacing={5}>
         <Heading color={textColor} mb={10}>
-          {mode ? "Power Rankings" : "Power Ranking Graphs"}
+          {mode ? "GOAT Rankings" : "GOAT Ranking Graphs"}
         </Heading>
         {Object.keys(singlesGameData).length > 0 ? (
           <Box display="flex" justifyContent="space-around" width="100%">

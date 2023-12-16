@@ -17,6 +17,7 @@ import {
 } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { ArrowBackIcon } from "@chakra-ui/icons";
+import { apiUrl } from "../../../utils/utils";
 
 function arrayUnique(array: any) {
   var a = array.concat();
@@ -41,45 +42,33 @@ const PlayerStats = () => {
     const fetchData = async () => {
       try {
         const responses = await Promise.all([
-          axios.get("http://localhost:8000/total-points?mode=singles"),
-          axios.get("http://localhost:8000/total-points?mode=doubles"),
+          axios.get(`http://${apiUrl}/total-points?mode=singles`),
+          axios.get(`http://${apiUrl}/total-points?mode=doubles`),
+
+          axios.get(`http://${apiUrl}/average-points-per-game?mode=singles`),
+          axios.get(`http://${apiUrl}/average-points-per-game?mode=doubles`),
+
+          axios.get(`http://${apiUrl}/average-standings-per-game?mode=singles`),
+          axios.get(`http://${apiUrl}/average-standings-per-game?mode=doubles`),
+
+          axios.get(`http://${apiUrl}/player-ppt?mode=singles`),
+          axios.get(`http://${apiUrl}/player-ppt?mode=doubles`),
 
           axios.get(
-            "http://localhost:8000/average-points-per-game?mode=singles"
+            `http://${apiUrl}/average-points-per-tournament-game?mode=singles`
           ),
           axios.get(
-            "http://localhost:8000/average-points-per-game?mode=doubles"
+            `http://${apiUrl}/average-points-per-tournament-game?mode=doubles`
           ),
 
-          axios.get(
-            "http://localhost:8000/average-standings-per-game?mode=singles"
-          ),
-          axios.get(
-            "http://localhost:8000/average-standings-per-game?mode=doubles"
-          ),
+          axios.get(`http://${apiUrl}/total-games-played?mode=singles`),
+          axios.get(`http://${apiUrl}/total-games-played?mode=doubles`),
 
-          axios.get("http://localhost:8000/player-ppt?mode=singles"),
-          axios.get("http://localhost:8000/player-ppt?mode=doubles"),
+          axios.get(`http://${apiUrl}/total-tournaments-played?mode=singles`),
+          axios.get(`http://${apiUrl}/total-tournaments-played?mode=doubles`),
 
-          axios.get(
-            "http://localhost:8000/average-points-per-tournament-game?mode=singles"
-          ),
-          axios.get(
-            "http://localhost:8000/average-points-per-tournament-game?mode=doubles"
-          ),
-
-          axios.get("http://localhost:8000/total-games-played?mode=singles"),
-          axios.get("http://localhost:8000/total-games-played?mode=doubles"),
-
-          axios.get(
-            "http://localhost:8000/total-tournaments-played?mode=singles"
-          ),
-          axios.get(
-            "http://localhost:8000/total-tournaments-played?mode=doubles"
-          ),
-
-          axios.get("http://localhost:8000/player-tt?mode=singles"),
-          axios.get("http://localhost:8000/player-tt?mode=doubles"),
+          axios.get(`http://${apiUrl}/player-tt?mode=singles`),
+          axios.get(`http://${apiUrl}/player-tt?mode=doubles`),
         ]);
 
         const [

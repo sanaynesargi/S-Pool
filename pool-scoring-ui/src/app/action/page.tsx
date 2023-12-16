@@ -5,6 +5,7 @@ import Navbar from "../../../components/Navbar";
 import PlayerGrid, { PlayerActionCounts } from "../../../components/PlayerGrid";
 import axios from "axios";
 import MatchupsPage from "../../../components/MatchupCreator";
+import { apiUrl } from "../../../utils/utils";
 
 const clearNameGridStateStorage = () => {
   localStorage.removeItem("nameGridState");
@@ -42,7 +43,7 @@ const Home: React.FC = () => {
 
       matches = JSON.parse(matches);
 
-      await axios.post("http://localhost:8000/end-game", {
+      await axios.post(`http://${apiUrl}/end-game`, {
         playerActionCounts,
         mode: mode ? "singles" : "doubles",
         standings,

@@ -17,6 +17,7 @@ import {
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useReducer, useState } from "react";
+import { apiUrl } from "../../../../utils/utils";
 
 const getNameIndex = (name: string, arr: any) => {
   let index = 0;
@@ -88,30 +89,30 @@ const PlayerList = () => {
   useEffect(() => {
     const fetchData = async () => {
       const gamesResS = await axios.get(
-        `http://localhost:8000/average-points-per-tournament-game`,
+        `http://${apiUrl}/average-points-per-tournament-game`,
         { params: { mode: "singles" } }
       );
 
       const gamesResD = await axios.get(
-        `http://localhost:8000/average-points-per-tournament-game`,
+        `http://${apiUrl}/average-points-per-tournament-game`,
         { params: { mode: "doubles" } }
       );
 
       const tournamentsResS = await axios.get(
-        `http://localhost:8000/average-points-per-game`,
+        `http://${apiUrl}/average-points-per-game`,
         { params: { mode: "singles" } }
       );
 
       const tournamentsResD = await axios.get(
-        `http://localhost:8000/average-points-per-game`,
+        `http://${apiUrl}/average-points-per-game`,
         { params: { mode: "doubles" } }
       );
 
       const pptSingles = await axios.get(
-        "http://localhost:8000/player-ppt?mode=singles"
+        `http://${apiUrl}/player-ppt?mode=singles`
       );
       const pptDoubles = await axios.get(
-        "http://localhost:8000/player-ppt?mode=doubles"
+        `http://${apiUrl}/player-ppt?mode=doubles`
       );
 
       // Sort the data
