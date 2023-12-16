@@ -1,6 +1,15 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { Box, HStack, Text, useToast } from "@chakra-ui/react";
+import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  AlertTitle,
+  Box,
+  HStack,
+  Text,
+  useToast,
+} from "@chakra-ui/react";
 import Navbar from "../../../components/Navbar";
 import PlayerGrid, { PlayerActionCounts } from "../../../components/PlayerGrid";
 import axios from "axios";
@@ -19,6 +28,7 @@ const Home: React.FC = () => {
   const [mode, setMode] = useState(false);
   const [standings, setStandings] = useState<any>({});
   const [playerGameCounts, setPlayerGameCounts] = useState<any>({});
+  const prod = process.env.NODE_ENV === "production";
 
   const addPlayers = (players: string[]) => {
     setPlayers(players);
@@ -63,53 +73,65 @@ const Home: React.FC = () => {
   const errorToast = useToast();
 
   return (
-    <Box>
-      <Navbar
-        onAddPlayers={addPlayers}
-        setGameStarted={startGame}
-        isGameStarted={isGameStarted}
-        onEndGame={() => {
-          for (let player of players) {
-            console.log(player);
-            if (standings[player] == 0) {
-              errorToast({
-                title: "Error Ending Game",
-                description: "Please Finalize Ranks",
-                status: "error",
-                duration: 3000,
-                isClosable: true,
-              });
-              return;
-            } else if (playerGameCounts[player] == 0) {
-              errorToast({
-                title: "Error Ending Game",
-                description: "Please Finalize Game Counts",
-                status: "error",
-                duration: 3000,
-                isClosable: true,
-              });
-              return;
-            }
-          }
+    <>
+      {prod ? (
+        <Alert status="error">
+          <AlertIcon />
+          <AlertTitle>Action Not Available!</AlertTitle>
+          <AlertDescription>
+            Not Allowed to Alter Stats Remotely
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Box>
+          <Navbar
+            onAddPlayers={addPlayers}
+            setGameStarted={startGame}
+            isGameStarted={isGameStarted}
+            onEndGame={() => {
+              for (let player of players) {
+                console.log(player);
+                if (standings[player] == 0) {
+                  errorToast({
+                    title: "Error Ending Game",
+                    description: "Please Finalize Ranks",
+                    status: "error",
+                    duration: 3000,
+                    isClosable: true,
+                  });
+                  return;
+                } else if (playerGameCounts[player] == 0) {
+                  errorToast({
+                    title: "Error Ending Game",
+                    description: "Please Finalize Game Counts",
+                    status: "error",
+                    duration: 3000,
+                    isClosable: true,
+                  });
+                  return;
+                }
+              }
 
-          sendData();
-        }}
-        mode={mode}
-        setMode={setMode}
-      />
-      {players.length == 0 ? null : (
-        <PlayerGrid
-          standings={standings}
-          setStandings={setStandings}
-          isGameStarted={isGameStarted}
-          names={players}
-          onNameClick={() => {}}
-          playerActionCounts={playerActionCounts}
-          setPlayerActionCounts={setPlayerActionCounts}
-          updateGameCountsCallback={(e: any) => setPlayerGameCounts(e)}
-        />
+              sendData();
+            }}
+            mode={mode}
+            setMode={setMode}
+          />
+          {players.length == 0 ? null : (
+            <PlayerGrid
+              standings={standings}
+              setStandings={setStandings}
+              isGameStarted={isGameStarted}
+              names={players}
+              onNameClick={() => {}}
+              playerActionCounts={playerActionCounts}
+              setPlayerActionCounts={setPlayerActionCounts}
+              updateGameCountsCallback={(e: any) => setPlayerGameCounts(e)}
+            />
+          )}
+        </Box>
       )}
-    </Box>
+    </>
   );
 };
 
