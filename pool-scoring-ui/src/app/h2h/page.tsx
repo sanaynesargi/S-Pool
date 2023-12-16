@@ -22,6 +22,7 @@ import {
 } from "@chakra-ui/react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import axios from "axios";
+import { apiUrl } from "../../../utils/utils";
 
 const LastFiveHeadToHead = ({ matches }: any) => {
   return (
