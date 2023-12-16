@@ -1033,5 +1033,5 @@ app.get("api/matchups-p", (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}/api);
+  console.log(`Server running at http://localhost:${port}/api`);
 });
