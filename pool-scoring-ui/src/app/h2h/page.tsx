@@ -123,7 +123,7 @@ const MatchupLookup = () => {
     let endpoint = "/matchups";
     if (mode === "doubles" && lookupType === "player") {
       endpoint = "/matchups-p";
-    } else {
+    } else if (mode == "doubles") {
       if (!player1.includes(";") || !player2.includes("")) {
         toast({
           title: "Error",
