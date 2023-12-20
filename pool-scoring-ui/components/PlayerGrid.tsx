@@ -17,6 +17,7 @@ import {
   NumberInput,
   NumberInputField,
   NumberInputStepper,
+  useDisclosure,
 } from "@chakra-ui/react";
 import ActionModal, { ActionType } from "./ActionModal";
 import MatchupPage from "./MatchupCreator";
@@ -24,6 +25,7 @@ import LeaderboardModal from "./LeaderboardModal";
 import PlayerDetailsModal from "./PlayerDetailsModal";
 import { ArrowDownIcon, ArrowUpIcon } from "@chakra-ui/icons";
 import { SP } from "next/dist/shared/lib/utils";
+import FantasyModal from "./TournamentView";
 
 interface NameGridProps {
   names: string[];
@@ -244,11 +246,37 @@ const NameGrid: React.FC<NameGridProps> = ({
     }
   };
 
+  function convertObjectToArray(obj: any) {
+    // Create an empty array to hold the converted objects
+    let result = [];
+
+    // Loop through each property in the object
+    for (let key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        // Create a new object with the name property
+        let newObj: any = { name: key };
+
+        // Add the inner object properties to the new object
+        for (let prop in obj[key]) {
+          if (obj[key].hasOwnProperty(prop)) {
+            newObj[prop] = obj[key][prop];
+          }
+        }
+
+        // Add the new object to the result array
+        result.push(newObj);
+      }
+    }
+
+    return result;
+  }
+
   const bgColor = "#1A202C";
   const actionBgColor = "#2D3748";
   const defaultBgColor = "#393D47";
 
   const errorToast = useToast();
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   return (
     <>
@@ -423,15 +451,16 @@ const NameGrid: React.FC<NameGridProps> = ({
             Show Leaderboard
           </Button>
           <MatchupPage players={names} />
+          <FantasyModal obj={convertObjectToArray(playerActionCounts)} />
         </HStack>
       </Center>
 
-      <LeaderboardModal
+      {/* <LeaderboardModal
         isOpen={isLeaderboardModalOpen}
         onClose={() => setIsLeaderboardModalOpen(false)}
         playerScores={playerScores}
         onScoreClick={handleScoreClick}
-      />
+      /> */}
 
       {selectedPlayerDetails && (
         <PlayerDetailsModal

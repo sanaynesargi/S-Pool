@@ -23,7 +23,8 @@ db.serialize(() => {
     actionType TEXT,
     actionValue INTEGER,
     actionCount INTEGER,
-    mode TEXT
+    mode TEXT,
+    tournamentId INTEGER NOT NULL
   )`);
 
   db.run(`CREATE TABLE IF NOT EXISTS player_games (
@@ -50,7 +51,8 @@ db.serialize(() => {
     winner TEXT NOT NULL CHECK (winner IN (player1, player2)),
     ballsWon INTEGER NOT NULL,
     overtime BOOLEAN NOT NULL,
-    mode TEXT
+    mode TEXT,
+    tournamentId INTEGER NOT NULL
 );`);
 });
 
@@ -112,8 +114,35 @@ interface Matchup {
   ballsWon: number;
 }
 
-const insertMatchups = (matchups: Matchup[], mode: string) => {
-  const insertStatement = `INSERT INTO player_matchups (player1, player2, winner, ballsWon, overtime, mode) VALUES (?, ?, ?, ?, ?, ?);`;
+async function getNextTournamentId(
+  tableName: string,
+  mode: string
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    db.get(
+      `SELECT MAX(tournamentId) AS maxTournamentId FROM ${tableName} WHERE mode = ${mode}`,
+      [],
+      (err, row: any) => {
+        if (err) {
+          reject(err);
+        } else {
+          // If there has never been a tournament, MAX(tournamentId) will be NULL, so we start with 1.
+          console.log(
+            (row.maxTournamentId ? parseInt(row.maxTournamentId) : 0) + 1
+          );
+          resolve(
+            (row.maxTournamentId ? parseInt(row.maxTournamentId) : 0) + 1
+          );
+        }
+      }
+    );
+  });
+}
+
+const insertMatchups = async (matchups: Matchup[], mode: string) => {
+  const insertStatement = `INSERT INTO player_matchups (player1, player2, winner, ballsWon, overtime, mode, tournamentId) VALUES (?, ?, ?, ?, ?, ?, ?);`;
+
+  const t = await getNextTournamentId("player_matchups", mode);
 
   matchups.forEach((matchup) => {
     db.run(
@@ -125,6 +154,7 @@ const insertMatchups = (matchups: Matchup[], mode: string) => {
         matchup.ballsWon,
         matchup.isOT ? 1 : 0,
         mode,
+        t,
       ],
       (err) => {
         if (err) {
@@ -185,24 +215,27 @@ const scoreMap: { [a: string]: number } = {
   "Opp. 8 Ball In": -2,
 };
 
-const addPlayerActions = (actions: PlayerAction[], mode: string) => {
+const addPlayerActions = async (actions: PlayerAction[], mode: string) => {
   const newActions = convertDataToPlayerActions(actions, mode);
 
   if (newActions.length == 0) {
     return;
   }
 
+  const t = await getNextTournamentId("player_matchups", mode);
+
   return new Promise<void>((resolve, reject) => {
-    const placeholders = newActions.map(() => "(?, ?, ?, ?, ?)").join(", ");
+    const placeholders = newActions.map(() => "(?, ?, ?, ?, ?, ?)").join(", ");
     const values = newActions.flatMap((a) => [
       a.playerName,
       a.actionType,
       scoreMap[a.actionType],
       a.actionCount,
       a.mode,
+      t,
     ]);
 
-    const sql = `INSERT INTO player_actions (playerName, actionType, actionValue, actionCount, mode) VALUES ${placeholders}`;
+    const sql = `INSERT INTO player_actions (playerName, actionType, actionValue, actionCount, mode, tournamentId) VALUES ${placeholders}`;
 
     db.serialize(() => {
       db.run("BEGIN TRANSACTION");
@@ -261,12 +294,12 @@ const endGame = async (actions: any) => {
       return;
     }
 
-    await addPlayerActions(actions.playerActionCounts!, actions.mode!);
+    await addPlayerActions(actions.playerActionCounts!, actions.mode!); // tid
     const playerNames = Object.keys(actions.playerActionCounts!);
     await incrementGamesPlayed(playerNames, actions.mode!);
     await incrementMiniGamesPlayed(actions.playerGameCounts!, actions.mode!);
     await addPlayerStandings(actions.standings!, actions.mode!);
-    insertMatchups(actions.matches!, actions.mode!);
+    insertMatchups(actions.matches!, actions.mode!); // tid
     console.log("Game Ended!");
   } catch (error) {
     console.error("Error ending game:", error);
@@ -1030,6 +1063,69 @@ app.get("/api/matchups-p", (req, res) => {
       },
     });
   });
+});
+
+app.get("/api/tournamentData/", (req, res) => {
+  const mode = req.query.mode;
+
+  db.all(
+    "SELECT * FROM player_actions WHERE mode = ?",
+    [mode],
+    (err, actions) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send("Internal Server Error");
+      }
+
+      const summaryMap = new Map();
+      const matchupsSet = new Set();
+
+      if (actions.length === 0) {
+        return res.json({ playerSummaries: [], matchups: [] });
+      }
+
+      actions.forEach((action: any) => {
+        const playerTournamentKey = `${action.playerName}-${action.tournamentId}`;
+        if (!summaryMap.has(playerTournamentKey)) {
+          summaryMap.set(playerTournamentKey, {
+            playerName: action.playerName,
+            tournamentId: action.tournamentId,
+            totalFpts: 0,
+            actions: [],
+          });
+        }
+        const playerSummary = summaryMap.get(playerTournamentKey);
+
+        const actionFpts = action.actionCount * action.actionValue;
+        playerSummary.totalFpts += actionFpts;
+
+        playerSummary.actions.push({
+          ...action,
+          fpts: actionFpts,
+          count: action.actionCount,
+        });
+      });
+
+      db.all(
+        "SELECT * FROM player_matchups WHERE mode = ?",
+        [mode],
+        (err, matchups) => {
+          if (err) {
+            console.error(err);
+            return res.status(500).send("Internal Server Error");
+          }
+
+          matchups.forEach((matchup) => {
+            matchupsSet.add(matchup);
+          });
+
+          const playerSummaries = Array.from(summaryMap.values());
+          const uniqueMatchups = Array.from(matchupsSet);
+          res.json({ playerSummaries, matchups: uniqueMatchups });
+        }
+      );
+    }
+  );
 });
 
 app.listen(port, () => {

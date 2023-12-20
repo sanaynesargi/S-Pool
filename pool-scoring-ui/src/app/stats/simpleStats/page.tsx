@@ -42,8 +42,8 @@ const createPlayers = (a: any, b: any, c: any, d: any, e: any, f: any) => {
     objS.push({
       name: entry.name,
       PPG: parseFloat(entry.number),
-      PPT: parseFloat(b[bInd].number),
-      PPS: parseFloat(e[eInd].number),
+      PPT: parseFloat(b[bInd] ? b[bInd].number : 0),
+      PPS: parseFloat(e[eInd] ? e[eInd].number : 0),
     });
   }
 
@@ -54,8 +54,8 @@ const createPlayers = (a: any, b: any, c: any, d: any, e: any, f: any) => {
     objD.push({
       name: entry.name,
       PPG: parseFloat(entry.number),
-      PPT: parseFloat(d[dInd].number),
-      PPS: parseFloat(f[fInd].number),
+      PPT: parseFloat(d[dInd] ? d[dInd].number : 0),
+      PPS: parseFloat(f[fInd] ? d[dInd].number : 0),
     });
   }
 
