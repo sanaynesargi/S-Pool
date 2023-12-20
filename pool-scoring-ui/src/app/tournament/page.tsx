@@ -17,6 +17,7 @@ import {
   Grid,
 } from "@chakra-ui/react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
+import { apiUrl } from "../../../utils/utils";
 
 const getFirstLetters = (str: string) =>
   str.includes(" ")
@@ -100,7 +101,7 @@ const PlayerStatsComponent = () => {
       setIsLoading(true);
       try {
         const response = await fetch(
-          "http://localhost:8000/api/tournamentData?mode=singles"
+          `http://${apiUrl}/tournamentData?mode=singles`
         );
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
