@@ -75,19 +75,23 @@ const PlayerStatsRow = ({ name, obj, idx }: any) => (
           <Text fontSize="lg" fontWeight="semibold">
             {getTotal(obj)}
           </Text>
+          <Text>-</Text>
           <Text fontSize="lg" fontWeight="semibold">
             {name}
           </Text>
         </HStack>
       ) : (
-        <HStack w="100%" justifyContent="space-between">
-          <Text fontSize="lg" fontWeight="semibold">
-            {name}
-          </Text>
-          <Text fontSize="lg" fontWeight="semibold">
-            {getTotal(obj)}
-          </Text>
-        </HStack>
+        <Center>
+          <HStack w="100%" justifyContent="space-between">
+            <Text fontSize="lg" fontWeight="semibold">
+              {name}
+            </Text>
+            <Text>-</Text>
+            <Text fontSize="lg" fontWeight="semibold">
+              {getTotal(obj)}
+            </Text>
+          </HStack>
+        </Center>
       )}
       <Text fontSize="xs" maxW="150px">
         {ObjectToChakraText(obj)}
