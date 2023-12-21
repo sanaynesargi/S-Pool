@@ -80,6 +80,8 @@ type Player = {
   PPG: number;
   PPT: number;
   PPS: number;
+  BST: number;
+  WRST: number;
 };
 
 // A utility type for the sorting order
