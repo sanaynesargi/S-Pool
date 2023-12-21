@@ -31,7 +31,16 @@ const getNameIndex = (name: string, arr: any) => {
   return -1;
 };
 
-const createPlayers = (a: any, b: any, c: any, d: any, e: any, f: any) => {
+const createPlayers = (
+  a: any,
+  b: any,
+  c: any,
+  d: any,
+  e: any,
+  f: any,
+  g: any,
+  h: any
+) => {
   let objS: any = [];
   let objD: any = [];
 
@@ -44,18 +53,21 @@ const createPlayers = (a: any, b: any, c: any, d: any, e: any, f: any) => {
       PPG: parseFloat(entry.number),
       PPT: parseFloat(b[bInd] ? b[bInd].number : 0),
       PPS: parseFloat(e[eInd] ? e[eInd].number : 0),
+      BST: parseFloat(g[entry.name]["best"]["totalFpts"]),
+      WRST: parseFloat(g[entry.name]["worst"]["totalFpts"]),
     });
   }
 
   for (const entry of c) {
     const dInd = getNameIndex(entry.name, d);
     const fInd = getNameIndex(entry.name, f);
-
     objD.push({
       name: entry.name,
       PPG: parseFloat(entry.number),
       PPT: parseFloat(d[dInd] ? d[dInd].number : 0),
-      PPS: parseFloat(f[fInd] ? d[dInd].number : 0),
+      PPS: parseFloat(f[fInd] ? f[fInd].number : 0),
+      BST: parseFloat(h[entry.name]?.best.totalFpts as any),
+      WRST: parseFloat(h[entry.name]?.worst.totalFpts as any),
     });
   }
 
@@ -80,11 +92,14 @@ const PlayerList = () => {
   const [doublesTournamentData, setDoublesTournamentGameData] = useState([]);
   const [pptSinglesData, setPPTSinglesData] = useState([]);
   const [pptDoublesData, setPPTDoublesData] = useState([]);
+  const [singlesBWT, setSinglesBWT] = useState<any>();
+  const [doublesBWT, setDoublesBWT] = useState<any>();
   const [mode, setMode] = useState(true);
   const [players, setPlayers] = useState([]);
   const [, forceUpdate] = useReducer((x: any) => x + 1, 0);
   const [sortField, setSortField] = useState<keyof Player | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,6 +130,13 @@ const PlayerList = () => {
         `http://${apiUrl}/player-ppt?mode=doubles`
       );
 
+      const bwtSingles = await axios.get(
+        `http://${apiUrl}/tournamentBestWorst?mode=singles`
+      );
+      const bwtDoubles = await axios.get(
+        `http://${apiUrl}/tournamentBestWorst?mode=doubles`
+      );
+
       // Sort the data
       const sortData = (data: any) => {
         // Convert the object into an array of [key, value] pairs
@@ -137,6 +159,9 @@ const PlayerList = () => {
       setDoublesTournamentGameData(sortData(tournamentsResD.data) as any);
       setPPTSinglesData(sortData(pptSingles.data) as any);
       setPPTDoublesData(sortData(pptDoubles.data) as any);
+      setSinglesBWT(bwtSingles.data.playerBestWorst as any);
+      setDoublesBWT(bwtDoubles.data.playerBestWorst as any);
+      setIsLoading(false);
     };
 
     fetchData();
@@ -150,7 +175,9 @@ const PlayerList = () => {
     doublesGameData,
     doublesTournamentData,
     pptSinglesData,
-    pptDoublesData
+    pptDoublesData,
+    singlesBWT,
+    doublesBWT
   );
 
   // useEffect(() => {
@@ -196,67 +223,99 @@ const PlayerList = () => {
           <Button onClick={() => setPlayers(playersD)}>Doubles</Button>
         </Flex>
         <Box w="full" bg="gray.800" borderRadius="lg">
-          <HStack
-            justifyContent="space-between"
-            p={4}
-            borderBottomWidth="1px"
-            borderColor="gray.600"
-          >
-            <Button
-              flex="1"
-              variant="ghost"
-              onClick={() => sortPlayers("name")}
-            >
-              Name
-            </Button>
-            <Tooltip label="Points Per Game" fontSize="md">
-              <Button
-                flex="1"
-                variant="ghost"
-                onClick={() => sortPlayers("PPG")}
+          {isLoading ? null : (
+            <>
+              <HStack
+                justifyContent="space-between"
+                p={4}
+                borderBottomWidth="1px"
+                borderColor="gray.600"
               >
-                PPG
-              </Button>
-            </Tooltip>
-            <Tooltip label="Points Per Tournament" fontSize="md">
-              <Button
-                flex="1"
-                variant="ghost"
-                onClick={() => sortPlayers("PPT")}
-              >
-                PPT
-              </Button>
-            </Tooltip>
-            <Tooltip label="Points Per Stroke" fontSize="md">
-              <Button
-                flex="1"
-                variant="ghost"
-                onClick={() => sortPlayers("PPS")}
-              >
-                PPS
-              </Button>
-            </Tooltip>
-          </HStack>
-          {players.map((player: any, index) => (
-            <HStack
-              key={index}
-              justifyContent="space-between"
-              p={4}
-              borderBottomWidth={index !== players.length - 1 ? "1px" : "none"}
-              borderColor="gray.600"
-            >
-              <Text flex="1">{player.name}</Text>
-              <Text flex="1" textAlign="center">
-                {player.PPG}
-              </Text>
-              <Text flex="1" textAlign="center">
-                {player.PPT}
-              </Text>
-              <Text flex="1" textAlign="center">
-                {player.PPS}
-              </Text>
-            </HStack>
-          ))}
+                <Button
+                  flex="1"
+                  variant="ghost"
+                  onClick={() => sortPlayers("name")}
+                >
+                  Name
+                </Button>
+                <Tooltip label="Points Per Game" fontSize="md">
+                  <Button
+                    flex="1"
+                    variant="ghost"
+                    onClick={() => sortPlayers("PPG")}
+                  >
+                    PPG
+                  </Button>
+                </Tooltip>
+                <Tooltip label="Points Per Tournament" fontSize="md">
+                  <Button
+                    flex="1"
+                    variant="ghost"
+                    onClick={() => sortPlayers("PPT")}
+                  >
+                    PPT
+                  </Button>
+                </Tooltip>
+                <Tooltip label="Points Per Stroke" fontSize="md">
+                  <Button
+                    flex="1"
+                    variant="ghost"
+                    onClick={() => sortPlayers("PPS")}
+                  >
+                    PPS
+                  </Button>
+                </Tooltip>
+                <Tooltip label="Best Tournament" fontSize="md">
+                  <Button
+                    flex="1"
+                    variant="ghost"
+                    onClick={() => sortPlayers("BST")}
+                  >
+                    BST
+                  </Button>
+                </Tooltip>
+                <Tooltip label="Worst Tournament" fontSize="md">
+                  <Button
+                    flex="1"
+                    variant="ghost"
+                    onClick={() => sortPlayers("WRST")}
+                  >
+                    WRST
+                  </Button>
+                </Tooltip>
+              </HStack>
+              <>
+                {players.map((player: any, index) => (
+                  <HStack
+                    key={index}
+                    justifyContent="space-between"
+                    p={4}
+                    borderBottomWidth={
+                      index !== players.length - 1 ? "1px" : "none"
+                    }
+                    borderColor="gray.600"
+                  >
+                    <Text flex="1">{player.name}</Text>
+                    <Text flex="1" textAlign="center">
+                      {player.PPG}
+                    </Text>
+                    <Text flex="1" textAlign="center">
+                      {player.PPT}
+                    </Text>
+                    <Text flex="1" textAlign="center">
+                      {player.PPS}
+                    </Text>
+                    <Text flex="1" textAlign="center">
+                      {player.BST}
+                    </Text>
+                    <Text flex="1" textAlign="center">
+                      {player.WRST}
+                    </Text>
+                  </HStack>
+                ))}
+              </>
+            </>
+          )}
         </Box>
       </VStack>
       <Center mt={"3vh"}>

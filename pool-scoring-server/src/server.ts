@@ -1128,6 +1128,69 @@ app.get("/api/tournamentData/", (req, res) => {
   );
 });
 
+app.get("/api/tournamentBestWorst/", (req, res) => {
+  const mode = req.query.mode;
+
+  db.all(
+    "SELECT * FROM player_actions WHERE mode = ?",
+    [mode],
+    (err, actions) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).send("Internal Server Error");
+      }
+
+      const summaryMap = new Map();
+
+      if (actions.length === 0) {
+        return res.json({ playerSummaries: [] });
+      }
+
+      actions.forEach((action: any) => {
+        const playerTournamentKey = `${action.playerName}-${action.tournamentId}`;
+        if (!summaryMap.has(playerTournamentKey)) {
+          summaryMap.set(playerTournamentKey, {
+            playerName: action.playerName,
+            tournamentId: action.tournamentId,
+            totalFpts: 0,
+          });
+        }
+        const playerSummary = summaryMap.get(playerTournamentKey);
+        const actionFpts = action.actionCount * action.actionValue;
+        playerSummary.totalFpts += actionFpts;
+      });
+
+      const playerBestWorst: any = {};
+
+      summaryMap.forEach((value, key) => {
+        const [playerName, tournamentId] = key.split("-");
+        if (!playerBestWorst[playerName]) {
+          playerBestWorst[playerName] = {
+            best: { tournamentId, totalFpts: -Infinity },
+            worst: { tournamentId, totalFpts: Infinity },
+          };
+        }
+
+        if (value.totalFpts > playerBestWorst[playerName].best.totalFpts) {
+          playerBestWorst[playerName].best = {
+            tournamentId,
+            totalFpts: value.totalFpts,
+          };
+        }
+
+        if (value.totalFpts < playerBestWorst[playerName].worst.totalFpts) {
+          playerBestWorst[playerName].worst = {
+            tournamentId,
+            totalFpts: value.totalFpts,
+          };
+        }
+      });
+
+      res.json({ playerBestWorst });
+    }
+  );
+});
+
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}/api`);
 });
