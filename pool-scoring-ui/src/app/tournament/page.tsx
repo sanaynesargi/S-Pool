@@ -15,6 +15,7 @@ import {
   useToast,
   Tooltip,
   Grid,
+  Button,
 } from "@chakra-ui/react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
 import { apiUrl } from "../../../utils/utils";
@@ -88,12 +89,23 @@ const TournamentSelector = ({
 };
 
 const PlayerStatsComponent = () => {
-  const [playerData, setPlayerData] = useState([]);
+  const [playerData, setPlayerData] = useState<any>([]);
+  const [playerDataS, setPlayerDataS] = useState<any>([]);
+  const [playerDataD, setPlayerDataD] = useState<any>([]);
+
   const [currentTournament, setCurrentTournament] = useState<any>();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [matchups, setMatchups] = useState([]);
+
+  const [matchups, setMatchups] = useState<any>([]);
+  const [matchupsS, setMatchupsS] = useState<any>([]);
+  const [matchupsD, setMatchupsD] = useState<any>([]);
+
   const [tournamentIds, setTournamentIds] = useState<any>([]);
+  const [tournamentIdsS, setTournamentIdsS] = useState<any>([]);
+  const [tournamentIdsD, setTournamentIdsD] = useState<any>([]);
+  const [mode, setMode] = useState(true);
+
   const toast = useToast();
 
   useEffect(() => {
@@ -114,7 +126,51 @@ const PlayerStatsComponent = () => {
             data.playerSummaries.map((item: any) => item.tournamentId)
           ),
         ]);
+
+        setPlayerDataS(data.playerSummaries);
+        setMatchupsS(data.matchups);
+        setTournamentIdsS([
+          ...new Set(
+            data.playerSummaries.map((item: any) => item.tournamentId)
+          ),
+        ]);
+
         setCurrentTournament(data.playerSummaries[0]?.tournamentId || null);
+      } catch (error: any) {
+        setError(error.message);
+        toast({
+          title: "Error fetching data.",
+          description: error.message,
+          status: "error",
+          duration: 9000,
+          isClosable: true,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [toast]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `http://${apiUrl}/tournamentData?mode=doubles`
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setPlayerDataD(data.playerSummaries);
+        setMatchupsD(data.matchups);
+        setTournamentIdsD([
+          ...new Set(
+            data.playerSummaries.map((item: any) => item.tournamentId)
+          ),
+        ]);
+        //setCurrentTournament(data.playerSummaries[0]?.tournamentId || null);
       } catch (error: any) {
         setError(error.message);
         toast({
@@ -180,6 +236,27 @@ const PlayerStatsComponent = () => {
           colorScheme="teal"
           variant="outline"
         />
+        <Button
+          onClick={() => {
+            setMode(!mode);
+
+            if (!mode) {
+              setPlayerData(playerDataS);
+              setMatchups(matchupsS);
+              setTournamentIds(tournamentIdsS);
+              setCurrentTournament(playerDataS[0]?.tournamentId || null);
+              setTournamentIds(tournamentIdsS);
+            } else {
+              setPlayerData(playerDataD);
+              setMatchups(matchupsD);
+              setTournamentIds(tournamentIdsD);
+              setCurrentTournament(playerDataD[0]?.tournamentId || null);
+              setTournamentIds(tournamentIdsD);
+            }
+          }}
+        >
+          Mode: {mode ? "Singles" : "Doubles"}
+        </Button>
       </HStack>
       <Tabs variant="enclosed">
         <TabList>

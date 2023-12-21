@@ -93,6 +93,15 @@ const HomePage: React.FC = () => {
           >
             View H2H Statistics
           </Button>
+          <Button
+            size="lg"
+            colorScheme="teal"
+            width="200px"
+            height="60px"
+            onClick={() => handleNavigation("/tournament")}
+          >
+            View Tournament Log
+          </Button>
         </VStack>
       </Container>
     </Flex>
