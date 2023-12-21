@@ -16,6 +16,9 @@ import {
   Tooltip,
   Grid,
   Button,
+  Divider,
+  Center,
+  Stack,
 } from "@chakra-ui/react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
 import { apiUrl } from "../../../utils/utils";
@@ -60,7 +63,7 @@ const PlayerStats = ({ playerName, totalFpts, actions }: any) => {
                 </Text>
               </Tooltip>
               <Text fontWeight="semibold" opacity="80%">
-                {action.actionCount}
+                {action.actionCount > 0 ? action.actionCount : 0}
               </Text>
             </VStack>
           ))}
@@ -68,6 +71,91 @@ const PlayerStats = ({ playerName, totalFpts, actions }: any) => {
       </VStack>
     </Box>
   );
+};
+
+const convertDataToSleeperLog = (data: any) => {
+  let log: any[] = [];
+
+  for (const entry of data) {
+    const playerName = entry["playerName"];
+    const totalFpts = entry["totalFpts"];
+    const tid = entry["tournamentId"];
+    let condensedActions = [];
+
+    for (let actionObj of entry.actions) {
+      const type = getFirstLetters(actionObj["actionType"]);
+      const count = actionObj["actionCount"];
+
+      condensedActions.push({ type, count });
+    }
+
+    log.push({
+      tid,
+      playerName,
+      totalFpts,
+      actions: condensedActions,
+    });
+  }
+
+  return log;
+};
+
+const getStatColor = (value: string, count: number) => {
+  switch (value) {
+    case "NR": {
+      return {
+        colorScheme: count <= 15 ? "green" : count <= 35 ? "yellow" : "red",
+      };
+    }
+    case "BI": {
+      return {
+        colorScheme: count >= 7 ? "green" : count >= 3 ? "yellow" : "red",
+        bg: count >= 10 ? "#00FF00" : undefined,
+      };
+    }
+    case "2BI": {
+      return {
+        colorScheme: count >= 3 ? "green" : count >= 1 ? "yellow" : "red",
+        bg: count >= 5 ? "#00FF00" : undefined,
+      };
+    }
+    case "3BI": {
+      return {
+        colorScheme: count >= 1 ? "green" : "red",
+        bg: count >= 2 ? "#00FF00" : undefined,
+      };
+    }
+    case "4BI": {
+      return {
+        colorScheme: count >= 1 ? "green" : "red",
+        bg: count >= 2 ? "#00FF00" : undefined,
+      };
+    }
+    case "S": {
+      return {
+        colorScheme: count <= 5 ? "green" : count <= 7 ? "yellow" : "red",
+        bg: count <= 3 ? "#00FF00" : count >= 12 ? "#FF0000" : undefined,
+      };
+    }
+    case "8BI": {
+      return {
+        colorScheme: count >= 5 ? "green" : count >= 3 ? "yellow" : "red",
+        bg: count >= 7 ? "#00FF00" : undefined,
+      };
+    }
+    case "OBI": {
+      return {
+        colorScheme: count <= 3 ? "green" : count <= 5 ? "yellow" : "red",
+        bg: count <= 1 ? "#00FF00" : count >= 7 ? "#00FF00" : undefined,
+      };
+    }
+    case "O8BI": {
+      return {
+        colorScheme: count == 0 ? "green" : count <= 1 ? "yellow" : "red",
+        bg: count <= 0 ? "#00FF00" : count >= 2 ? "#00FF00" : undefined,
+      };
+    }
+  }
 };
 
 const TournamentSelector = ({
@@ -78,7 +166,7 @@ const TournamentSelector = ({
   return (
     <Select
       placeholder="Select tournament"
-      value={tournamentId}
+      value={tournamentId ?? ""}
       onChange={(e) => onTournamentChange(Number(e.target.value))}
     >
       {tournaments.map((id: any) => (
@@ -105,8 +193,10 @@ const PlayerStatsComponent = () => {
   const [tournamentIdsS, setTournamentIdsS] = useState<any>([]);
   const [tournamentIdsD, setTournamentIdsD] = useState<any>([]);
   const [mode, setMode] = useState(true);
+  const [playerLog, setPlayerLog] = useState<any>([]);
 
   const toast = useToast();
+  const [selectedPlayer, setSelectedPlayer] = useState<string>("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -128,6 +218,7 @@ const PlayerStatsComponent = () => {
         ]);
 
         setPlayerDataS(data.playerSummaries);
+        setPlayerLog(convertDataToSleeperLog(data.playerSummaries));
         setMatchupsS(data.matchups);
         setTournamentIdsS([
           ...new Set(
@@ -209,111 +300,213 @@ const PlayerStatsComponent = () => {
   if (error) return <Text>Error: {error}</Text>;
 
   return (
-    <Box>
-      <HStack mb={4} spacing={4} alignItems="center">
-        <IconButton
-          aria-label="Previous tournament"
-          icon={<ChevronLeftIcon />}
-          onClick={() => navigateTournament("prev")}
-          isDisabled={currentTournament === null}
-          size="lg"
-          colorScheme="teal"
-          variant="outline"
-        />
-        <Box width="full" maxW="300px">
-          <TournamentSelector
-            tournamentId={currentTournament}
-            onTournamentChange={handleTournamentChange}
-            tournaments={tournamentIds}
+    <HStack w="100%" h="100vh">
+      <Box alignSelf="start" w="50%">
+        <HStack mt={4} spacing={4} alignItems="center">
+          <IconButton
+            aria-label="Previous tournament"
+            icon={<ChevronLeftIcon />}
+            onClick={() => navigateTournament("prev")}
+            isDisabled={currentTournament === null}
+            size="lg"
+            colorScheme="teal"
+            variant="outline"
           />
-        </Box>
-        <IconButton
-          aria-label="Next tournament"
-          icon={<ChevronRightIcon />}
-          onClick={() => navigateTournament("next")}
-          isDisabled={currentTournament === null}
-          size="lg"
-          colorScheme="teal"
-          variant="outline"
-        />
-        <Button
-          onClick={() => {
-            setMode(!mode);
+          <Box width="full" maxW="300px">
+            <TournamentSelector
+              tournamentId={currentTournament}
+              onTournamentChange={handleTournamentChange}
+              tournaments={tournamentIds}
+            />
+          </Box>
+          <IconButton
+            aria-label="Next tournament"
+            icon={<ChevronRightIcon />}
+            onClick={() => navigateTournament("next")}
+            isDisabled={currentTournament === null}
+            size="lg"
+            colorScheme="teal"
+            variant="outline"
+          />
+          <Button
+            onClick={() => {
+              setMode(!mode);
 
-            if (!mode) {
-              setPlayerData(playerDataS);
-              setMatchups(matchupsS);
-              setTournamentIds(tournamentIdsS);
-              setCurrentTournament(playerDataS[0]?.tournamentId || null);
-              setTournamentIds(tournamentIdsS);
-            } else {
-              setPlayerData(playerDataD);
-              setMatchups(matchupsD);
-              setTournamentIds(tournamentIdsD);
-              setCurrentTournament(playerDataD[0]?.tournamentId || null);
-              setTournamentIds(tournamentIdsD);
-            }
-          }}
-        >
-          Mode: {mode ? "Singles" : "Doubles"}
-        </Button>
-      </HStack>
-      <Tabs variant="enclosed">
-        <TabList>
-          <Tab>Players</Tab>
-          <Tab>Matchups</Tab>
-        </TabList>
-        <TabPanels>
-          <TabPanel>
-            <VStack>
-              {sortedCurrentData.map((player: any) => (
-                <PlayerStats key={player.playerName} {...player} />
-              ))}
-            </VStack>
-          </TabPanel>
-          <TabPanel>
-            <Grid templateColumns="repeat(3, 1fr)" gap={6}>
-              {matchups.map((match: any, index: any) => {
-                if (match.tournamentId !== currentTournament) {
-                  return null;
-                }
-                return (
-                  <Box
-                    key={index}
-                    p={4}
-                    borderWidth="2px"
-                    borderRadius="lg"
-                    shadow="md"
-                    bgGradient="linear(to-r, gray.700, gray.800)"
-                    color="white"
-                  >
-                    <VStack spacing={2}>
-                      <Text
-                        fontSize="lg"
-                        fontWeight="bold"
-                        textDecoration="underline"
-                      >
-                        {match.player1} vs {match.player2}
-                      </Text>
-                      <Text fontSize="md" fontWeight="semibold">
-                        Winner:{" "}
-                        <Text as="span" fontWeight="bold">
-                          {match.winner}
+              if (!mode) {
+                setPlayerData(playerDataS);
+                setMatchups(matchupsS);
+                setTournamentIds(tournamentIdsS);
+                setCurrentTournament(playerDataS[0]?.tournamentId || null);
+                setTournamentIds(tournamentIdsS);
+                setPlayerLog(convertDataToSleeperLog(playerDataS));
+              } else {
+                setPlayerData(playerDataD);
+                setMatchups(matchupsD);
+                setTournamentIds(tournamentIdsD);
+                setCurrentTournament(playerDataD[0]?.tournamentId || null);
+                setTournamentIds(tournamentIdsD);
+                setPlayerLog(convertDataToSleeperLog(playerDataD));
+              }
+            }}
+          >
+            Mode: {mode ? "Singles" : "Doubles"}
+          </Button>
+        </HStack>
+        <Tabs variant="enclosed" mt={4}>
+          <TabList>
+            <Tab>Players</Tab>
+            <Tab>Matchups</Tab>
+          </TabList>
+          <TabPanels>
+            <TabPanel>
+              <VStack>
+                {sortedCurrentData.map((player: any) => (
+                  <PlayerStats key={player.playerName} {...player} />
+                ))}
+              </VStack>
+            </TabPanel>
+            <TabPanel>
+              <Grid templateColumns="repeat(3, 1fr)" gap={6}>
+                {matchups.map((match: any, index: any) => {
+                  if (match.tournamentId !== currentTournament) {
+                    return null;
+                  }
+                  return (
+                    <Box
+                      key={index}
+                      p={4}
+                      borderWidth="2px"
+                      borderRadius="lg"
+                      shadow="md"
+                      bgGradient="linear(to-r, gray.700, gray.800)"
+                      color="white"
+                    >
+                      <VStack spacing={2}>
+                        <Text
+                          fontSize="lg"
+                          fontWeight="bold"
+                          textDecoration="underline"
+                        >
+                          {match.player1} vs {match.player2}
                         </Text>
-                      </Text>
-                      <HStack justify="space-between" w="full">
-                        <Text>Balls Won: {match.ballsWon}</Text>
-                        <Text>OT: {match.isOT ? "Yes" : "No"}</Text>
-                      </HStack>
+                        <Text fontSize="md" fontWeight="semibold">
+                          Winner:{" "}
+                          <Text as="span" fontWeight="bold">
+                            {match.winner}
+                          </Text>
+                        </Text>
+                        <HStack justify="space-between" w="full">
+                          <Text>Balls Won: {match.ballsWon}</Text>
+                          <Text>OT: {match.isOT ? "Yes" : "No"}</Text>
+                        </HStack>
+                      </VStack>
+                    </Box>
+                  );
+                })}
+              </Grid>
+            </TabPanel>
+          </TabPanels>
+        </Tabs>
+      </Box>
+      <Divider orientation="vertical" />
+      <VStack w="50%" spacing={7}>
+        <Select
+          placeholder="Select Player"
+          onChange={(e) => {
+            setSelectedPlayer(e.target.value);
+          }}
+          position="fixed"
+          top={10}
+          bottom={0}
+          right={10}
+          maxW="200px"
+        >
+          {Array(Object.values(playerData)).map((value: any) => {
+            return Object.values(value).map((v: any) => {
+              if (v.tournamentId != currentTournament) {
+                return;
+              }
+
+              return <option>{v.playerName}</option>;
+            });
+          })}
+        </Select>
+        {playerLog.map((value: any) => {
+          if (value.playerName != selectedPlayer) {
+            return;
+          }
+
+          return (
+            <Center overflowY="scroll" w="100%">
+              <HStack w="100%">
+                <VStack>
+                  <Text fontWeight="semibold">ID</Text>
+                  <Button
+                    paddingTop="3px"
+                    paddingBottom="3px"
+                    paddingLeft="15px"
+                    paddingRight="15px"
+                    borderRadius="md"
+                    colorScheme="green"
+                  >
+                    {value.tid}
+                  </Button>
+                </VStack>
+                <VStack>
+                  <Text fontWeight="bold">Name</Text>
+                  <Button
+                    paddingTop="3px"
+                    paddingBottom="3px"
+                    paddingLeft="15px"
+                    paddingRight="15px"
+                    borderRadius="md"
+                    colorScheme="teal"
+                  >
+                    {value.playerName}
+                  </Button>
+                </VStack>
+                <VStack>
+                  <Text fontWeight="bold">FPTS</Text>
+                  <Button
+                    paddingTop="3px"
+                    paddingBottom="3px"
+                    paddingLeft="15px"
+                    paddingRight="15px"
+                    borderRadius="md"
+                    colorScheme={
+                      value.totalFpts >= 16
+                        ? "green"
+                        : value.totalFpts >= 10
+                        ? "yellow"
+                        : "red"
+                    }
+                    bg={
+                      value.totalFpts <= 0
+                        ? "#FF0000"
+                        : value.totalFpts >= 20
+                        ? "#00FF00"
+                        : undefined
+                    }
+                  >
+                    {value.totalFpts}
+                  </Button>
+                </VStack>
+                {value.actions.map((value: any) => {
+                  const count = value.count > 0 ? value.count : 0;
+                  const colorProps = getStatColor(value.type, count);
+                  return (
+                    <VStack>
+                      <Text fontWeight="bold">{value.type}</Text>
+                      <Button {...colorProps}>{count}</Button>
                     </VStack>
-                  </Box>
-                );
-              })}
-            </Grid>
-          </TabPanel>
-        </TabPanels>
-      </Tabs>
-    </Box>
+                  );
+                })}
+              </HStack>
+            </Center>
+          );
+        })}
+      </VStack>
+    </HStack>
   );
 };
 
