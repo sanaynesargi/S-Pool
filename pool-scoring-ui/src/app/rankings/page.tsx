@@ -83,8 +83,10 @@ const getListItemBg = (index: any, column: any) => {
   const colorPalettes = [
     ["red.400", "orange.400", "yellow.500"], // Palette for 1st Row
     ["green.300", "cyan.400", "teal.400"], // Palette for 2nd Row
+    ["blue.800", "purple.700", "green.700"], // Palette for 2nd Row
     ["green.300", "cyan.400", "teal.400"], // Palette for 3rd Row
     ["red.400", "orange.400", "yellow.500"], // Palette for 4th Row
+    ["blue.800", "purple.700", "green.700"],
   ];
 
   if (index < 3) {
@@ -104,6 +106,8 @@ const RankingsPage = () => {
   const [doublesGameData, setDoublesGameData] = useState([]);
   const [singlesTournamentData, setSinglesTournamentGameData] = useState([]);
   const [doublesTournamentData, setDoublesTournamentGameData] = useState([]);
+  const [singlesStrokeData, setSinglesStrokeGameData] = useState([]);
+  const [doublesStrokeData, setDoublesStrokeGameData] = useState([]);
   const [mode, setMode] = useState(true);
 
   useEffect(() => {
@@ -128,6 +132,13 @@ const RankingsPage = () => {
         { params: { mode: "doubles" } }
       );
 
+      const pptSingles = await axios.get(
+        `http://${apiUrl}/player-ppt?mode=singles`
+      );
+      const pptDoubles = await axios.get(
+        `http://${apiUrl}/player-ppt?mode=doubles`
+      );
+
       // Sort the data
       const sortData = (data: any) => {
         // Convert the object into an array of [key, value] pairs
@@ -148,6 +159,8 @@ const RankingsPage = () => {
       setDoublesGameData(sortData(gamesResD.data) as any);
       setSinglesTournamentGameData(sortData(tournamentsResS.data) as any);
       setDoublesTournamentGameData(sortData(tournamentsResD.data) as any);
+      setSinglesStrokeGameData(sortData(pptSingles.data) as any);
+      setDoublesStrokeGameData(sortData(pptDoubles.data) as any);
     };
 
     fetchData();
@@ -161,57 +174,60 @@ const RankingsPage = () => {
         </Heading>
         {Object.keys(singlesGameData).length > 0 ? (
           <Box display="flex" justifyContent="space-around" width="100%">
-            {["Singles PPG", "Singles PPT", "Doubles PPG", "Doubles PPT"].map(
-              (category, columnIndex) => (
-                <VStack key={category} spacing={4}>
-                  {mode ? (
-                    <>
-                      <Heading size="md" color={textColor}>
-                        {category}
-                      </Heading>
-                      <List spacing={3}>
-                        {[
-                          singlesGameData,
-                          singlesTournamentData,
-                          doublesGameData,
-                          doublesTournamentData,
-                        ][columnIndex].map((team: any, index) => {
-                          const { fontSize, padding, boxShadow } =
-                            getListItemStyle(index);
-                          return (
-                            <ScaleFade key={index} initialScale={0.9} in={true}>
-                              <ListItem
-                                p={padding}
-                                boxShadow={boxShadow}
-                                borderRadius="lg"
-                                bg={getListItemBg(index, columnIndex)}
-                                _hover={{ transform: "scale(1.05)" }}
-                                transition="all 0.2s ease-in-out"
+            {[
+              "Singles PPG",
+              "Singles PPT",
+              "Singles PPS",
+              "Doubles PPG",
+              "Doubles PPT",
+              "Doubles PPS",
+            ].map((category, columnIndex) => (
+              <VStack key={category} spacing={4}>
+                {mode ? (
+                  <>
+                    <Heading size="md" color={textColor}>
+                      {category}
+                    </Heading>
+                    <List spacing={3}>
+                      {[
+                        singlesGameData,
+                        singlesTournamentData,
+                        singlesStrokeData,
+                        doublesGameData,
+                        doublesTournamentData,
+                        doublesStrokeData,
+                      ][columnIndex].map((team: any, index) => {
+                        const { fontSize, padding, boxShadow } =
+                          getListItemStyle(index);
+                        return (
+                          <ScaleFade key={index} initialScale={0.9} in={true}>
+                            <ListItem
+                              p={padding}
+                              boxShadow={boxShadow}
+                              borderRadius="lg"
+                              bg={getListItemBg(index, columnIndex)}
+                              _hover={{ transform: "scale(1.05)" }}
+                              transition="all 0.2s ease-in-out"
+                            >
+                              <Text
+                                fontSize={fontSize}
+                                fontWeight="bold"
+                                color={textColor}
                               >
-                                <Text
-                                  fontSize={fontSize}
-                                  fontWeight="bold"
-                                  color={textColor}
-                                >
-                                  {`${index + 1}. ${team.name}`}
-                                  <Badge
-                                    ml={3}
-                                    bg={badgeColor}
-                                    borderRadius="5%"
-                                  >
-                                    {team.number}
-                                  </Badge>
-                                </Text>
-                              </ListItem>
-                            </ScaleFade>
-                          );
-                        })}
-                      </List>
-                    </>
-                  ) : null}
-                </VStack>
-              )
-            )}
+                                {`${index + 1}. ${team.name}`}
+                                <Badge ml={3} bg={badgeColor} borderRadius="5%">
+                                  {team.number}
+                                </Badge>
+                              </Text>
+                            </ListItem>
+                          </ScaleFade>
+                        );
+                      })}
+                    </List>
+                  </>
+                ) : null}
+              </VStack>
+            ))}
             {!mode ? (
               <HStack justifyContent="space-around" w="100%">
                 <VStack>
