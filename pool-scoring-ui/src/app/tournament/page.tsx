@@ -146,7 +146,7 @@ const getStatColor = (value: string, count: number) => {
     case "OBI": {
       return {
         colorScheme: count <= 3 ? "green" : count <= 5 ? "yellow" : "red",
-        bg: count <= 1 ? "#00FF00" : count >= 7 ? "#00FF00" : undefined,
+        bg: count <= 0 ? "#00FF00" : count >= 7 ? "#00FF00" : undefined,
       };
     }
     case "O8BI": {
