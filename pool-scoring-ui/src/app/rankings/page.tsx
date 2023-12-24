@@ -34,7 +34,7 @@ const ScatterPlotComponent = ({ dictX, dictY }: any) => {
     return {
       name: obj.name,
       x: parseFloat(obj.number), // Convert string to float
-      y: parseFloat(dictY[index].number), // Convert string to float
+      y: parseFloat(dictY[index] ? dictY[index].number : 0), // Convert string to float
     };
   });
 
