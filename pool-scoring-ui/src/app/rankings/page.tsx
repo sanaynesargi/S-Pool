@@ -13,6 +13,9 @@ import {
   ScaleFade,
   Select,
   HStack,
+  Button,
+  Spacer,
+  Center,
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useEffect, useState } from "react";
@@ -27,6 +30,8 @@ import {
   Label,
 } from "recharts";
 import { apiUrl } from "../../../utils/utils";
+import { useRouter } from "next/navigation";
+import { ArrowBackIcon } from "@chakra-ui/icons";
 
 const ScatterPlotComponent = ({ dictX, dictY }: any) => {
   // Convert the dictionaries into an array of objects suitable for plotting
@@ -37,8 +42,6 @@ const ScatterPlotComponent = ({ dictX, dictY }: any) => {
       y: parseFloat(dictY[index] ? dictY[index].number : 0), // Convert string to float
     };
   });
-
-  console.log(data);
 
   return (
     <ScatterChart
@@ -166,12 +169,17 @@ const RankingsPage = () => {
     fetchData();
   }, []);
 
+  const router = useRouter();
+
   return (
     <Container maxW="container.xl" py={5}>
       <VStack spacing={5}>
-        <Heading color={textColor} mb={10}>
-          {mode ? "GOAT Rankings" : "GOAT Ranking Graphs"}
-        </Heading>
+        <Center>
+          <Heading color={textColor} mb={10}>
+            <Spacer w="50px"></Spacer>
+            {mode ? "GOAT Rankings" : "GOAT Ranking Graphs"}
+          </Heading>
+        </Center>
         {Object.keys(singlesGameData).length > 0 ? (
           <Box display="flex" justifyContent="space-around" width="100%">
             {[
@@ -248,10 +256,21 @@ const RankingsPage = () => {
             ) : null}
           </Box>
         ) : null}
-        <Select maxW="200px" onChange={() => setMode(!mode)}>
-          <option>Rankings</option>
-          <option>Graphs</option>
-        </Select>
+        <HStack>
+          <Button
+            leftIcon={<ArrowBackIcon />}
+            bg="blackAlpha.800"
+            onClick={() => {
+              router.push("/");
+            }}
+          >
+            Back
+          </Button>
+          <Select maxW="200px" onChange={() => setMode(!mode)}>
+            <option>Rankings</option>
+            <option>Graphs</option>
+          </Select>
+        </HStack>
       </VStack>
     </Container>
   );

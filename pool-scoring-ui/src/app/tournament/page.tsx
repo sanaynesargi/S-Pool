@@ -20,8 +20,13 @@ import {
   Center,
   Stack,
 } from "@chakra-ui/react";
-import { ChevronLeftIcon, ChevronRightIcon } from "@chakra-ui/icons";
+import {
+  ArrowBackIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "@chakra-ui/icons";
 import { apiUrl } from "../../../utils/utils";
+import { useRouter } from "next/navigation";
 
 const getFirstLetters = (str: string) =>
   str.includes(" ")
@@ -164,15 +169,17 @@ const TournamentSelector = ({
   tournaments,
 }: any) => {
   return (
-    <Select
-      placeholder="Select tournament"
-      value={tournamentId ?? ""}
-      onChange={(e) => onTournamentChange(Number(e.target.value))}
-    >
-      {tournaments.map((id: any) => (
-        <option key={id} value={id}>{`Tournament ${id}`}</option>
-      ))}
-    </Select>
+    <HStack>
+      <Select
+        placeholder="Select tournament"
+        value={tournamentId ?? ""}
+        onChange={(e) => onTournamentChange(Number(e.target.value))}
+      >
+        {tournaments.map((id: any) => (
+          <option key={id} value={id}>{`Tournament ${id}`}</option>
+        ))}
+      </Select>
+    </HStack>
   );
 };
 
@@ -197,6 +204,8 @@ const PlayerStatsComponent = () => {
 
   const toast = useToast();
   const [selectedPlayer, setSelectedPlayer] = useState<string>("");
+
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -303,6 +312,15 @@ const PlayerStatsComponent = () => {
     <HStack w="100%" h="100vh">
       <Box alignSelf="start" w="50%">
         <HStack mt={4} spacing={4} alignItems="center">
+          <Button
+            leftIcon={<ArrowBackIcon />}
+            bg="blackAlpha.800"
+            onClick={() => {
+              router.push("/");
+            }}
+          >
+            Back
+          </Button>
           <IconButton
             aria-label="Previous tournament"
             icon={<ChevronLeftIcon />}

@@ -1,7 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Avatar, Box, Flex, Text, useColorModeValue } from "@chakra-ui/react";
+import {
+  Avatar,
+  Box,
+  Button,
+  Flex,
+  Text,
+  useColorModeValue,
+} from "@chakra-ui/react";
+import { ArrowBackIcon } from "@chakra-ui/icons";
+import { useRouter } from "next/navigation";
 
 interface LeaderboardEntry {
   rank: number;
@@ -44,6 +53,7 @@ const Leaderboard: React.FC = () => {
 
   const bg = useColorModeValue("white", "gray.800");
   const boxShadow = useColorModeValue("sm", "md");
+  const router = useRouter();
 
   return (
     <Box overflowX="auto">
@@ -58,6 +68,15 @@ const Leaderboard: React.FC = () => {
         color={useColorModeValue("white", "gray.800")}
         borderRadius="lg"
       >
+        <Button
+          leftIcon={<ArrowBackIcon />}
+          bg="blackAlpha.800"
+          onClick={() => {
+            router.push("/");
+          }}
+        >
+          Back
+        </Button>
         <Text fontWeight="bold">Rank</Text>
         <Text fontWeight="bold">Player</Text>
         <Text fontWeight="bold">Score</Text>

@@ -1,6 +1,10 @@
 "use client";
 
-import { ArrowForwardIcon, ArrowRightIcon } from "@chakra-ui/icons";
+import {
+  ArrowBackIcon,
+  ArrowForwardIcon,
+  ArrowRightIcon,
+} from "@chakra-ui/icons";
 import {
   Box,
   VStack,
@@ -321,12 +325,23 @@ const PlayerList = () => {
         </Box>
       </VStack>
       <Center mt={"3vh"}>
-        <Button
-          onClick={() => router.push("/stats")}
-          rightIcon={<ArrowForwardIcon />}
-        >
-          Full Stats
-        </Button>
+        <HStack>
+          <Button
+            leftIcon={<ArrowBackIcon />}
+            bg="blackAlpha.800"
+            onClick={() => {
+              router.push("/");
+            }}
+          >
+            Back
+          </Button>
+          <Button
+            onClick={() => router.push("/stats")}
+            rightIcon={<ArrowForwardIcon />}
+          >
+            Full Stats
+          </Button>
+        </HStack>
       </Center>
     </Container>
   );

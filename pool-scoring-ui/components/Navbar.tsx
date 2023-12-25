@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Box, Flex, Text, Button } from "@chakra-ui/react";
 import AddPlayerModal from "./AddPlayerModal";
+import { useRouter } from "next/navigation";
 
 interface NavBarProps {
   onAddPlayers: (players: string[]) => void;
@@ -36,6 +37,8 @@ const Navbar: React.FC<NavBarProps> = ({
   useEffect(() => {
     localStorage.setItem("players", JSON.stringify(players));
   }, [players]);
+
+  const router = useRouter();
 
   const handleStartGame = () => {
     setGameStarted(true);
@@ -80,7 +83,16 @@ const Navbar: React.FC<NavBarProps> = ({
       zIndex="sticky"
     >
       <Box w="200px">
-        <Text fontSize="lg" fontWeight="bold">
+        <Text
+          fontSize="lg"
+          fontWeight="bold"
+          _hover={{
+            cursor: "pointer",
+          }}
+          onClick={() => {
+            router.push("/");
+          }}
+        >
           S-Pool (8 Ball)
         </Text>
       </Box>

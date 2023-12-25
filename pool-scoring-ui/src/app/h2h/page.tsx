@@ -23,6 +23,8 @@ import {
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import axios from "axios";
 import { apiUrl } from "../../../utils/utils";
+import { ArrowBackIcon } from "@chakra-ui/icons";
+import { useRouter } from "next/navigation";
 
 const LastFiveHeadToHead = ({ matches }: any) => {
   return (
@@ -168,10 +170,22 @@ const MatchupLookup = () => {
   const [p3, p4] =
     mode == "doubles" && lookupType == "team" ? player2.split(";") : ["", ""];
 
+  const router = useRouter();
+
   return (
     <VStack spacing={4} p={4} align="stretch">
       <Center p={4} borderRadius="md">
         <HStack w="100%">
+          <Button
+            leftIcon={<ArrowBackIcon />}
+            p={6}
+            bg="blackAlpha.800"
+            onClick={() => {
+              router.push("/");
+            }}
+          >
+            Back
+          </Button>
           <Input
             placeholder="Player 1"
             value={player1}

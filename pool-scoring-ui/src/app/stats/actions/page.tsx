@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import {
   Box,
+  Button,
   Center,
   Divider,
   HStack,
@@ -26,6 +27,8 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { apiUrl } from "../../../../utils/utils";
+import { ArrowBackIcon } from "@chakra-ui/icons";
+import router, { useRouter } from "next/navigation";
 
 const formatData = (data: any) => {
   const names = Object.keys(data);
@@ -111,6 +114,8 @@ const ActionsPage = () => {
     });
   }, []);
 
+  const router = useRouter();
+
   return (
     <>
       {!dataSingles || !dataDoubles ? (
@@ -148,6 +153,15 @@ const ActionsPage = () => {
                   }}
                 >
                   <Stack spacing={5} direction="row">
+                    <Button
+                      leftIcon={<ArrowBackIcon />}
+                      bg="blackAlpha.800"
+                      onClick={() => {
+                        router.push("/");
+                      }}
+                    >
+                      Back
+                    </Button>
                     <Radio colorScheme="red" value="1">
                       Singles
                     </Radio>
