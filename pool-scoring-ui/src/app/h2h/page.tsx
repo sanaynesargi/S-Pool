@@ -78,9 +78,17 @@ const MatchupLookup = () => {
           { params: { mode } }
         );
 
+        const pointsPeStrokeRes = await axios.get(
+          `http://${apiUrl}/player-ppt`,
+          {
+            params: { mode },
+          }
+        );
+
         const ranks = {
           pointsPerGame: rankPlayers(pointsPerGameRes.data),
           pointsPerTournament: rankPlayers(pointsPerTournamentRes.data),
+          pointsPerStroke: rankPlayers(pointsPeStrokeRes.data),
         };
 
         const tournamentsPlayed = totalTournamentPlayedRes.data;
@@ -121,6 +129,24 @@ const MatchupLookup = () => {
     return obj;
   };
 
+  function capitalizeString(input: any) {
+    // Function to capitalize the first letter of a string
+    function capitalize(s: any) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    if (input.includes(";")) {
+      // Split the string by ';' and capitalize each part
+      return input
+        .split(";")
+        .map((part: any) => capitalize(part.trim()))
+        .join("; ");
+    } else {
+      // Capitalize the first letter of the string
+      return capitalize(input);
+    }
+  }
+
   const handleLookup = async () => {
     let endpoint = "/matchups";
     if (mode === "doubles" && lookupType === "player") {
@@ -144,7 +170,11 @@ const MatchupLookup = () => {
 
     try {
       const response = await axios.get(`http://${apiUrl}${endpoint}`, {
-        params: { player1, player2, mode },
+        params: {
+          player1: capitalizeString(player1),
+          player2: capitalizeString(player2),
+          mode,
+        },
       });
       setMatchupData(response.data);
     } catch (error) {
@@ -328,6 +358,13 @@ const MatchupLookup = () => {
                           {playerRanks.pointsPerGame[player1][0]} ppt
                         </StatNumber>
                       </Stat>
+                      <Stat>
+                        <StatLabel>Points Per Stroke Rank</StatLabel>
+                        <StatNumber fontSize="15pt">
+                          #{playerRanks.pointsPerStroke[player1][1]}:{" "}
+                          {playerRanks.pointsPerStroke[player1][0]} pps
+                        </StatNumber>
+                      </Stat>
                       <Stat mb={2}>
                         <StatLabel>GP / TP</StatLabel>
                         <StatNumber fontSize="15pt">
@@ -340,6 +377,19 @@ const MatchupLookup = () => {
                   )}
                   <Divider />
 
+                  <Stat>
+                    <StatLabel>H2H Record</StatLabel>
+                    <StatNumber>
+                      {matchupData.headToHeadAllTime.player1Record}
+                    </StatNumber>
+                  </Stat>
+                  <Stat>
+                    <StatLabel>H2H Avg. Balls Won</StatLabel>
+                    <StatNumber>
+                      {matchupData.headToHeadAllTime.player1AvgBallsWon}
+                    </StatNumber>
+                  </Stat>
+                  <Divider mt={2} mb={2} />
                   <StatLabel mt={2}>Overall Win Rate</StatLabel>
                   <StatNumber>
                     {parseFloat(
@@ -372,20 +422,6 @@ const MatchupLookup = () => {
                     <StatLabel>Overall Avg. Balls Won</StatLabel>
                     <StatNumber>
                       {matchupData.overallStatsPlayer1.avgBallsWon}
-                    </StatNumber>
-                  </Stat>
-
-                  <Divider mt={2} mb={2} />
-                  <Stat>
-                    <StatLabel>H2H Record</StatLabel>
-                    <StatNumber>
-                      {matchupData.headToHeadAllTime.player1Record}
-                    </StatNumber>
-                  </Stat>
-                  <Stat>
-                    <StatLabel>H2H Avg. Balls Won</StatLabel>
-                    <StatNumber>
-                      {matchupData.headToHeadAllTime.player1AvgBallsWon}
                     </StatNumber>
                   </Stat>
                 </Stat>
@@ -520,6 +556,13 @@ const MatchupLookup = () => {
                       {playerRanks.pointsPerGame[player2][0]} ppt
                     </StatNumber>
                   </Stat>
+                  <Stat>
+                    <StatLabel>Points Per Stroke Rank</StatLabel>
+                    <StatNumber fontSize="15pt">
+                      #{playerRanks.pointsPerStroke[player2][1]}:{" "}
+                      {playerRanks.pointsPerStroke[player2][0]} pps
+                    </StatNumber>
+                  </Stat>
                   <Stat mb={2}>
                     <StatLabel>GP / TP</StatLabel>
                     <StatNumber fontSize="15pt">
@@ -534,6 +577,19 @@ const MatchupLookup = () => {
 
               <VStack w="100%">
                 <Stat>
+                  <Stat>
+                    <StatLabel>H2H Record</StatLabel>
+                    <StatNumber>
+                      {matchupData.headToHeadAllTime.player2Record}
+                    </StatNumber>
+                  </Stat>
+                  <Stat>
+                    <StatLabel>H2H Avg. Balls Won</StatLabel>
+                    <StatNumber>
+                      {matchupData.headToHeadAllTime.player2AvgBallsWon}
+                    </StatNumber>
+                  </Stat>
+                  <Divider mt={2} mb={2} />
                   <StatLabel>Overall Win Rate</StatLabel>
                   <StatNumber>
                     {parseFloat(
@@ -567,20 +623,6 @@ const MatchupLookup = () => {
                     <StatLabel>Overall Avg. Balls Won</StatLabel>
                     <StatNumber>
                       {matchupData.overallStatsPlayer2.avgBallsWon}
-                    </StatNumber>
-                  </Stat>
-
-                  <Divider mt={2} mb={2} />
-                  <Stat>
-                    <StatLabel>H2H Record</StatLabel>
-                    <StatNumber>
-                      {matchupData.headToHeadAllTime.player2Record}
-                    </StatNumber>
-                  </Stat>
-                  <Stat>
-                    <StatLabel>H2H Avg. Balls Won</StatLabel>
-                    <StatNumber>
-                      {matchupData.headToHeadAllTime.player2AvgBallsWon}
                     </StatNumber>
                   </Stat>
                 </Stat>
