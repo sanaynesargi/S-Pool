@@ -9,6 +9,7 @@ import {
   Flex,
   Text,
   Container,
+  HStack,
 } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 
@@ -33,76 +34,90 @@ const HomePage: React.FC = () => {
     >
       <Container centerContent>
         <Heading mb={6} size="2xl" color="teal.500">
-          Welcome to S-Pool!
+          S-Pool v.1.0.2
         </Heading>
-        <Text fontSize="xl" mb={10} color="gray.600">
-          Choose a page to get started
-        </Text>
-        <VStack spacing={8}>
-          <Button
-            size="lg"
-            colorScheme="blue"
-            width="200px"
-            height="60px"
-            onClick={() => handleNavigation("/action")}
-          >
-            Play a Game
-          </Button>
-          <Button
-            size="lg"
-            colorScheme="teal"
-            width="200px"
-            height="60px"
-            onClick={() => handleNavigation("/leaderboard")}
-          >
-            View Leaderboard
-          </Button>
-          <Button
-            size="lg"
-            colorScheme="red"
-            width="200px"
-            height="60px"
-            onClick={() => handleNavigation("/rankings")}
-          >
-            View Power Rankings
-          </Button>
-          <Button
-            size="lg"
-            colorScheme="green"
-            width="200px"
-            height="60px"
-            onClick={() => handleNavigation("/stats/simpleStats")}
-          >
-            View Statistics
-          </Button>
-          <Button
-            size="lg"
-            colorScheme="orange"
-            width="200px"
-            height="60px"
-            onClick={() => handleNavigation("/stats/actions")}
-          >
-            View Adv. Statistics
-          </Button>
-          <Button
-            size="lg"
-            colorScheme="purple"
-            width="200px"
-            height="60px"
-            onClick={() => handleNavigation("/h2h")}
-          >
-            View H2H Statistics
-          </Button>
-          <Button
-            size="lg"
-            colorScheme="teal"
-            width="200px"
-            height="60px"
-            onClick={() => handleNavigation("/tournament")}
-          >
-            View Tournament Log
-          </Button>
-        </VStack>
+
+        <HStack spacing={8}>
+          {/* First Column of Buttons */}
+          <VStack spacing={8}>
+            <Button
+              size="lg"
+              colorScheme="blue"
+              width="200px"
+              height="60px"
+              onClick={() => handleNavigation("/action")}
+            >
+              Play a Game
+            </Button>
+            <Button
+              size="lg"
+              colorScheme="teal"
+              width="200px"
+              height="60px"
+              onClick={() => handleNavigation("/leaderboard")}
+            >
+              View Leaderboard
+            </Button>
+            <Button
+              size="lg"
+              colorScheme="red"
+              width="200px"
+              height="60px"
+              onClick={() => handleNavigation("/rankings")}
+            >
+              View Power Rankings
+            </Button>
+            <Button
+              size="lg"
+              colorScheme="green"
+              width="200px"
+              height="60px"
+              onClick={() => handleNavigation("/stats/simpleStats")}
+            >
+              View Statistics
+            </Button>
+          </VStack>
+
+          {/* Second Column of Buttons */}
+          <VStack spacing={8}>
+            <Button
+              size="lg"
+              colorScheme="orange"
+              width="200px"
+              height="60px"
+              onClick={() => handleNavigation("/stats/actions")}
+            >
+              View Adv. Statistics
+            </Button>
+            <Button
+              size="lg"
+              colorScheme="purple"
+              width="200px"
+              height="60px"
+              onClick={() => handleNavigation("/h2h")}
+            >
+              View H2H Statistics
+            </Button>
+            <Button
+              size="lg"
+              colorScheme="teal"
+              width="200px"
+              height="60px"
+              onClick={() => handleNavigation("/tournament")}
+            >
+              View Tournament Log
+            </Button>
+            <Button
+              size="lg"
+              colorScheme="cyan"
+              width="200px"
+              height="60px"
+              onClick={() => handleNavigation("/about")}
+            >
+              About
+            </Button>
+          </VStack>
+        </HStack>
       </Container>
     </Flex>
   );

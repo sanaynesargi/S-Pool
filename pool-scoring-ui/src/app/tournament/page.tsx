@@ -19,6 +19,7 @@ import {
   Divider,
   Center,
   Stack,
+  Badge,
 } from "@chakra-ui/react";
 import {
   ArrowBackIcon,
@@ -27,6 +28,7 @@ import {
 } from "@chakra-ui/icons";
 import { apiUrl } from "../../../utils/utils";
 import { useRouter } from "next/navigation";
+import FantasyModal from "../../../components/TournamentView";
 
 const getFirstLetters = (str: string) =>
   str.includes(" ")
@@ -45,7 +47,7 @@ const PlayerStats = ({ playerName, totalFpts, actions }: any) => {
       mb={2}
       maxWidth="35vw"
       minWidth="35vw"
-      overflowX="scroll"
+      overflowX="hidden"
       overflowY="hidden"
     >
       <VStack align="stretch">
@@ -300,6 +302,31 @@ const PlayerStatsComponent = () => {
     setCurrentTournament(tournamentIds[nextIndex]);
   };
 
+  function convertObjectToArray(obj: any) {
+    // Create an empty array to hold the converted objects
+    let result = [];
+
+    // Loop through each property in the object
+    for (let key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        // Create a new object with the name property
+        let newObj: any = { name: key };
+
+        // Add the inner object properties to the new object
+        for (let prop in obj[key]) {
+          if (obj[key].hasOwnProperty(prop)) {
+            newObj[prop] = obj[key][prop];
+          }
+        }
+
+        // Add the new object to the result array
+        result.push(newObj);
+      }
+    }
+
+    return result;
+  }
+
   // Sort the player data for the current tournament by totalFpts in descending order
   const sortedCurrentData = playerData
     .filter((item: any) => item.tournamentId === currentTournament)
@@ -395,11 +422,12 @@ const PlayerStatsComponent = () => {
                       p={4}
                       borderWidth="2px"
                       borderRadius="lg"
-                      shadow="md"
-                      bgGradient="linear(to-r, gray.700, gray.800)"
+                      shadow="lg"
                       color="white"
+                      bg="gray.800"
+                      border="1px solid gray.700"
                     >
-                      <VStack spacing={2}>
+                      <VStack spacing={2} _hover={{ cursor: "pointer" }}>
                         <Text
                           fontSize="lg"
                           fontWeight="bold"
@@ -407,15 +435,41 @@ const PlayerStatsComponent = () => {
                         >
                           {match.player1} vs {match.player2}
                         </Text>
-                        <Text fontSize="md" fontWeight="semibold">
-                          Winner:{" "}
+                        <FantasyModal
+                          obj={playerData}
+                          match={true}
+                          id={currentTournament}
+                          p1={match.player1}
+                          p2={match.player2}
+                        />
+                        <Button
+                          fontSize="md"
+                          fontWeight="semibold"
+                          colorScheme="green"
+                        >
                           <Text as="span" fontWeight="bold">
-                            {match.winner}
+                            Winner: {match.winner}
                           </Text>
-                        </Text>
+                        </Button>
                         <HStack justify="space-between" w="full">
-                          <Text>Balls Won: {match.ballsWon}</Text>
-                          <Text>OT: {match.isOT ? "Yes" : "No"}</Text>
+                          <Badge
+                            colorScheme={
+                              match.ballsWon > 4
+                                ? "green"
+                                : match.ballsWon > 0
+                                ? "yellow"
+                                : "teal"
+                            }
+                            borderRadius="lg"
+                          >
+                            <Text>Balls Won: {match.ballsWon}</Text>
+                          </Badge>
+                          <Badge
+                            colorScheme={match.isOT ? "green" : "red"}
+                            borderRadius="lg"
+                          >
+                            <Text>OT: {match.isOT ? "Yes" : "No"}</Text>
+                          </Badge>
                         </HStack>
                       </VStack>
                     </Box>
@@ -455,7 +509,7 @@ const PlayerStatsComponent = () => {
           }
 
           return (
-            <Center overflowY="scroll" w="100%">
+            <Center overflowY="clip" w="100%">
               <HStack w="100%">
                 <VStack>
                   <Text fontWeight="semibold">ID</Text>

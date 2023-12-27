@@ -140,7 +140,7 @@ const MatchupLookup = () => {
       return input
         .split(";")
         .map((part: any) => capitalize(part.trim()))
-        .join("; ");
+        .join(";");
     } else {
       // Capitalize the first letter of the string
       return capitalize(input);
@@ -176,6 +176,8 @@ const MatchupLookup = () => {
           mode,
         },
       });
+      setPlayer1(capitalizeString(player1));
+      setPlayer2(capitalizeString(player2));
       setMatchupData(response.data);
     } catch (error) {
       toast({
@@ -301,6 +303,7 @@ const MatchupLookup = () => {
                           </HStack>
                         </HStack>
                       </Stat>
+                      <Divider />
                       <Stat>
                         <HStack w="100%" justifyContent="space-between">
                           <HStack>
@@ -319,6 +322,26 @@ const MatchupLookup = () => {
                           </HStack>
                         </HStack>
                       </Stat>
+                      <Divider />
+                      <Stat>
+                        <HStack w="100%" justifyContent="space-between">
+                          <HStack>
+                            <StatLabel>{p1} PPS Rk.</StatLabel>
+                            <StatNumber fontSize="15pt">
+                              #{playerRanks.pointsPerStroke[p1][1]}:{" "}
+                              {playerRanks.pointsPerStroke[p1][0]}
+                            </StatNumber>
+                          </HStack>
+                          <HStack>
+                            <StatLabel>{p2} PPS Rk.</StatLabel>
+                            <StatNumber fontSize="15pt">
+                              #{playerRanks.pointsPerStroke[p2][1]}:{" "}
+                              {playerRanks.pointsPerStroke[p2][0]}
+                            </StatNumber>
+                          </HStack>
+                        </HStack>
+                      </Stat>
+                      <Divider />
                       <Stat mb={2}>
                         <HStack w="100%" justifyContent="space-between">
                           <HStack>
@@ -470,6 +493,7 @@ const MatchupLookup = () => {
               paddingRight="5vw"
               bg="teal.700"
               borderRadius={"lg"}
+              h="100%"
               w="32vw"
               justifyContent="start"
             >
@@ -499,6 +523,7 @@ const MatchupLookup = () => {
                       </HStack>
                     </HStack>
                   </Stat>
+                  <Divider />
                   <Stat>
                     <HStack w="100%" justifyContent="space-between">
                       <HStack>
@@ -517,7 +542,27 @@ const MatchupLookup = () => {
                       </HStack>
                     </HStack>
                   </Stat>
-                  <Stat mb={2}>
+                  <Divider />
+                  <Stat>
+                    <HStack w="100%" justifyContent="space-between">
+                      <HStack>
+                        <StatLabel>{p3} PPS Rk.</StatLabel>
+                        <StatNumber fontSize="15pt">
+                          #{playerRanks.pointsPerStroke[p3][1]}:{" "}
+                          {playerRanks.pointsPerStroke[p3][0]}
+                        </StatNumber>
+                      </HStack>
+                      <HStack>
+                        <StatLabel>{p4} PPS Rk.</StatLabel>
+                        <StatNumber fontSize="15pt">
+                          #{playerRanks.pointsPerStroke[p4][1]}:{" "}
+                          {playerRanks.pointsPerStroke[p4][0]}
+                        </StatNumber>
+                      </HStack>
+                    </HStack>
+                  </Stat>
+                  <Divider />
+                  <Stat mb={2} w="100%">
                     <HStack w="100%" justifyContent="space-between">
                       <HStack>
                         <StatLabel>{p3} GP / TP</StatLabel>
@@ -537,6 +582,7 @@ const MatchupLookup = () => {
                       </HStack>
                     </HStack>
                   </Stat>
+                  <Divider />
                 </>
               ) : player1.includes(";") || player2.includes(";") ? (
                 <Text>Error Fetching Data</Text>
