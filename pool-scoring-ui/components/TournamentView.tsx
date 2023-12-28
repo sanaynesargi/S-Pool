@@ -16,35 +16,69 @@ import {
   HStack,
 } from "@chakra-ui/react";
 
-function ObjectToChakraText(obj: any, match: boolean) {
+function sortByName(arr: any) {
+  const newArr = arr.sort((a: any, b: any) => {
+    // Check if either string contains 'gp'
+    let containsGpA = a.includes("GP");
+    let containsGpB = b.includes("GP");
+
+    // Prioritize strings containing 'gp'
+    if (containsGpA && !containsGpB) {
+      return -1;
+    }
+    if (!containsGpA && containsGpB) {
+      return 1;
+    }
+
+    // If neither or both contain 'gp', sort alphabetically by name
+    let nameA = a.split(" ")[1].toLowerCase();
+    let nameB = b.split(" ")[1].toLowerCase();
+
+    if (nameA < nameB) {
+      return -1;
+    }
+    if (nameA > nameB) {
+      return 1;
+    }
+
+    return 0;
+  });
+
+  newArr[newArr.length - 1] = newArr[newArr.length - 1].slice(0, -2);
+
+  return newArr;
+}
+
+function ObjectToChakraText(obj: any, match: boolean, gp: number) {
   let keyValuePairs = [];
 
   if (!match) {
     // Filtering out keys 'name' and 'total', and then mapping to a formatted string
     keyValuePairs = Object.entries(obj)
       .filter(([key]) => key !== "name" && key !== "total")
-      .map(([key, value], index, array) => {
+      .map(([key, value]) => {
         // Adding a comma after each key-value pair except the last
-        const separator = index < array.length - 1 ? ", " : "";
+        const separator = ", ";
         return `${value} ${getFirstLetters(key)}${separator}`;
       });
-  } else {
-    keyValuePairs = [];
 
+    keyValuePairs.splice(0, 0, `${gp} GP, `);
+  } else {
     let index = 0;
     for (const blob of obj.actions) {
-      const separator = index < obj.actions.length - 1 ? ", " : "";
+      const separator = ", ";
       const string = `${blob.actionCount} ${getFirstLetters(
         blob.actionType
       )}${separator}`;
       keyValuePairs.push(string);
       index++;
     }
+    keyValuePairs.splice(0, 0, `${gp} GP, `);
   }
 
   return (
     <div>
-      <Text>{keyValuePairs}</Text>
+      <Text>{sortByName(keyValuePairs)}</Text>
     </div>
   );
 }
@@ -88,7 +122,7 @@ const getFirstLetters = (str: string) =>
         .join("")
     : str.charAt(0);
 
-const PlayerStatsRow = ({ name, obj, idx, match }: any) => {
+const PlayerStatsRow = ({ name, obj, idx, match, gp }: any) => {
   const cond = match ? idx % 2 == 0 : idx % 2 != 0;
 
   return (
@@ -118,14 +152,23 @@ const PlayerStatsRow = ({ name, obj, idx, match }: any) => {
           </Center>
         )}
         <Text fontSize="xs" maxW="150px">
-          {ObjectToChakraText(obj, match)}
+          {ObjectToChakraText(obj, match, gp)}
         </Text>
       </VStack>
     </Center>
   );
 };
 
-const FantasyModal = ({ obj, match, id, p1, p2 }: any) => {
+const FantasyModal = ({
+  obj,
+  match,
+  id,
+  p1,
+  p2,
+  gp1,
+  gp2,
+  gamesPlayed,
+}: any) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   return (
@@ -161,6 +204,13 @@ const FantasyModal = ({ obj, match, id, p1, p2 }: any) => {
                           match={match}
                           p1={p1}
                           p2={p2}
+                          gp={
+                            match
+                              ? [player.name, player.playerName].includes(p1)
+                                ? gp1
+                                : gp2
+                              : gamesPlayed[player.name]
+                          }
                         />
                       </>
                     );

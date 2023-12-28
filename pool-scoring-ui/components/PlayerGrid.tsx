@@ -451,7 +451,10 @@ const NameGrid: React.FC<NameGridProps> = ({
             Show Leaderboard
           </Button>
           <MatchupPage players={names} />
-          <FantasyModal obj={convertObjectToArray(playerActionCounts)} />
+          <FantasyModal
+            obj={convertObjectToArray(playerActionCounts)}
+            gamesPlayed={playerGamesPlayed}
+          />
         </HStack>
       </Center>
 

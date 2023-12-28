@@ -380,6 +380,24 @@ const PlayerStatsComponent = () => {
 
   const lineColors = ["yellow", "red", "orange", "green", "white", "violet"];
 
+  const getMatchupsLen = (tid: number, name: string) => {
+    let i = 0;
+
+    for (const match of matchups) {
+      if (match.tournamentId !== tid) {
+        continue;
+      }
+
+      if (![match.player1, match.player2].includes(name)) {
+        continue;
+      }
+
+      i++;
+    }
+
+    return i;
+  };
+
   return (
     <HStack w="100%" h="100vh">
       <Box alignSelf="start" w="50%">
@@ -487,6 +505,8 @@ const PlayerStatsComponent = () => {
                           id={currentTournament}
                           p1={match.player1}
                           p2={match.player2}
+                          gp1={getMatchupsLen(currentTournament, match.player1)}
+                          gp2={getMatchupsLen(currentTournament, match.player2)}
                         />
                         <Button
                           fontSize="md"
