@@ -1,3 +1,5 @@
+"use client";
+import { ArrowBackIcon } from "@chakra-ui/icons";
 import {
   Box,
   Container,
@@ -6,19 +8,21 @@ import {
   Link,
   VStack,
   Divider,
-  useColorModeValue,
+  Button,
 } from "@chakra-ui/react";
-import Head from "next/head";
+import { useRouter } from "next/navigation";
 
 const AboutPage = () => {
   const bgColor = "gray.700";
   const textColor = "whiteAlpha.900";
 
+  const router = useRouter();
+
   return (
     <>
-      <Head>
+      <head>
         <title>About S-Pool</title>
-      </Head>
+      </head>
       <Container maxW="container.md" pt={5}>
         <Box bg={bgColor} p={5} borderRadius="lg" shadow="md">
           <VStack spacing={4} align="stretch">
@@ -46,6 +50,15 @@ const AboutPage = () => {
               Discover more on GitHub
             </Link>
           </VStack>
+          <Button
+            leftIcon={<ArrowBackIcon />}
+            bg="blackAlpha.800"
+            onClick={() => {
+              router.push("/");
+            }}
+          >
+            Back
+          </Button>
         </Box>
       </Container>
     </>
