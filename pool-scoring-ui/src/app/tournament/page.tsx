@@ -1,6 +1,16 @@
 "use client";
 import { useState, useEffect } from "react";
 import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Legend,
+  Tooltip as TT,
+} from "recharts";
+
+import {
   Box,
   Select,
   Text,
@@ -207,6 +217,9 @@ const PlayerStatsComponent = () => {
   const toast = useToast();
   const [selectedPlayer, setSelectedPlayer] = useState<string>("");
 
+  const [allPlayersS, setAllPlayersS] = useState([]);
+  const [allPlayersD, setAllPlayersD] = useState([]);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -216,6 +229,11 @@ const PlayerStatsComponent = () => {
         const response = await fetch(
           `http://${apiUrl}/tournamentData?mode=singles`
         );
+
+        const playersS = await fetch(
+          `http://${apiUrl}/allPlayers?mode=singles`
+        );
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -227,6 +245,9 @@ const PlayerStatsComponent = () => {
             data.playerSummaries.map((item: any) => item.tournamentId)
           ),
         ]);
+
+        const pData = await playersS.json();
+        setAllPlayersS(pData.names);
 
         setPlayerDataS(data.playerSummaries);
         setPlayerLog(convertDataToSleeperLog(data.playerSummaries));
@@ -261,6 +282,11 @@ const PlayerStatsComponent = () => {
         const response = await fetch(
           `http://${apiUrl}/tournamentData?mode=doubles`
         );
+
+        const playersD = await fetch(
+          `http://${apiUrl}/allPlayers?mode=singles`
+        );
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -272,6 +298,10 @@ const PlayerStatsComponent = () => {
             data.playerSummaries.map((item: any) => item.tournamentId)
           ),
         ]);
+
+        const pData = await playersD.json();
+        setAllPlayersD(pData.names);
+
         //setCurrentTournament(data.playerSummaries[0]?.tournamentId || null);
       } catch (error: any) {
         setError(error.message);
@@ -302,31 +332,6 @@ const PlayerStatsComponent = () => {
     setCurrentTournament(tournamentIds[nextIndex]);
   };
 
-  function convertObjectToArray(obj: any) {
-    // Create an empty array to hold the converted objects
-    let result = [];
-
-    // Loop through each property in the object
-    for (let key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        // Create a new object with the name property
-        let newObj: any = { name: key };
-
-        // Add the inner object properties to the new object
-        for (let prop in obj[key]) {
-          if (obj[key].hasOwnProperty(prop)) {
-            newObj[prop] = obj[key][prop];
-          }
-        }
-
-        // Add the new object to the result array
-        result.push(newObj);
-      }
-    }
-
-    return result;
-  }
-
   // Sort the player data for the current tournament by totalFpts in descending order
   const sortedCurrentData = playerData
     .filter((item: any) => item.tournamentId === currentTournament)
@@ -334,6 +339,46 @@ const PlayerStatsComponent = () => {
 
   if (isLoading) return <Text>Loading...</Text>;
   if (error) return <Text>Error: {error}</Text>;
+
+  const filterData = (data: any) => {
+    let newObj: any = [];
+
+    if (data.length > 0 && typeof currentTournament == "number") {
+      let i = 0;
+      for (const blob of data) {
+        const fptsKey = `totalFpts${blob.playerName}`;
+        let obj: any = {
+          name: blob.playerName,
+          tid: blob.tournamentId,
+        };
+
+        obj[fptsKey] = blob.totalFpts;
+
+        newObj.push(obj);
+        i++;
+      }
+    }
+
+    const datat = newObj;
+    const transformed: any = {};
+
+    // Initialize a structure for each tid
+    datat.forEach((item: any) => {
+      if (!transformed[item.tid]) {
+        transformed[item.tid] = { tid: item.tid };
+      }
+    });
+
+    // Accumulate data for each tid
+    datat.forEach((item: any) => {
+      const yKey = "y" + item.name;
+      transformed[item.tid][yKey] = item[`totalFpts${item.name}`];
+    });
+
+    return Object.values(transformed);
+  };
+
+  const lineColors = ["yellow", "red", "orange", "green", "white", "violet"];
 
   return (
     <HStack w="100%" h="100vh">
@@ -401,6 +446,7 @@ const PlayerStatsComponent = () => {
           <TabList>
             <Tab>Players</Tab>
             <Tab>Matchups</Tab>
+            <Tab>Player History</Tab>
           </TabList>
           <TabPanels>
             <TabPanel>
@@ -476,6 +522,45 @@ const PlayerStatsComponent = () => {
                   );
                 })}
               </Grid>
+            </TabPanel>
+            <TabPanel>
+              <Box p={5} shadow="md" borderWidth="1px">
+                <LineChart
+                  width={600}
+                  height={300}
+                  data={filterData(playerData)}
+                  id="recharts2-clip"
+                >
+                  <XAxis dataKey="tid" />
+                  <YAxis />
+                  <TT
+                    contentStyle={{
+                      backgroundColor: "#000",
+                      borderColor: "black",
+                      borderRadius: "md",
+                    }}
+                  />
+                  <Legend />
+                  {(mode ? allPlayersS ?? [] : allPlayersD ?? []).map(
+                    (obj: any, index: number) => {
+                      if (selectedPlayer) {
+                        if (obj != selectedPlayer) {
+                          return;
+                        }
+                      }
+                      return (
+                        <Line
+                          key={index}
+                          connectNulls={true}
+                          type="monotone"
+                          dataKey={`y${obj}`}
+                          stroke={lineColors[index - 1]}
+                        />
+                      );
+                    }
+                  )}
+                </LineChart>
+              </Box>
             </TabPanel>
           </TabPanels>
         </Tabs>

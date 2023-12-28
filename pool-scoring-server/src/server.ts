@@ -825,7 +825,7 @@ app.get("/api/matchups", (req, res) => {
     LIMIT 5
   `;
 
-  const overallStatsQuery = (player: string) => `
+  const overallStatsQuery = () => `
     SELECT 
       COUNT(*) AS totalMatches,
       SUM(CASE WHEN winner = ? THEN 1 ELSE 0 END) AS wins,
@@ -861,7 +861,7 @@ app.get("/api/matchups", (req, res) => {
         }
 
         db.get(
-          overallStatsQuery(player1),
+          overallStatsQuery(),
           overallStatsParams(player1),
           (err, overallStatsRow1: any) => {
             if (err) {
@@ -869,7 +869,7 @@ app.get("/api/matchups", (req, res) => {
             }
 
             db.get(
-              overallStatsQuery(player2),
+              overallStatsQuery(),
               overallStatsParams(player2),
               (err, overallStatsRow2: any) => {
                 if (err) {
@@ -1189,6 +1189,35 @@ app.get("/api/tournamentBestWorst/", (req, res) => {
       res.json({ playerBestWorst });
     }
   );
+});
+
+app.get("/api/allPlayers/", (req, res) => {
+  const { mode } = req.query;
+
+  if (!mode) {
+    return res.status(400).send("Missing required parameters: mode");
+  }
+
+  const sql = `
+    SELECT 
+      DISTINCT(playerName)
+    FROM player_actions
+    WHERE mode = ?
+  `;
+
+  db.all(sql, [mode], (err, rows) => {
+    if (err) {
+      return res.status(500).send("Error occurred: " + err.message);
+    }
+
+    let names: string[] = [];
+
+    rows.forEach((row: any) => {
+      names.push(row.playerName);
+    });
+
+    return res.json({ names });
+  });
 });
 
 app.listen(port, () => {
