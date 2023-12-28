@@ -34,7 +34,7 @@ const HomePage: React.FC = () => {
     >
       <Container centerContent>
         <Heading mb={6} size="2xl" color="teal.500">
-          S-Pool v.1.2.3
+          S-Pool v.1.2.4
         </Heading>
 
         <HStack spacing={8}>
@@ -87,7 +87,7 @@ const HomePage: React.FC = () => {
               height="60px"
               onClick={() => handleNavigation("/stats/actions")}
             >
-              View Adv. Statistics
+              View Turn Statistics
             </Button>
             <Button
               size="lg"
