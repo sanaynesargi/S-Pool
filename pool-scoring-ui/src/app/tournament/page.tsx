@@ -48,8 +48,33 @@ const getFirstLetters = (str: string) =>
         .join("")
     : str.charAt(0);
 
+function reorderObject(obj: any) {
+  const desiredOrder = [
+    "Opp. 8 Ball In",
+    "Opp Ball In",
+    "Scratch",
+    "No Result",
+    "Ball In",
+    "2 Ball In",
+    "3 Ball In",
+    "4+ Ball In",
+    "8 Ball In",
+  ];
+  const orderedObj: any = {};
+
+  desiredOrder.forEach((key) => {
+    // Add the key with its value from obj or 0 if it doesn't exist
+    if (obj.hasOwnProperty(key)) {
+      orderedObj[key] = obj[key];
+    }
+  });
+
+  return orderedObj;
+}
+
 function consolidateActions(actions: any) {
   const consolidated: any = {};
+  let metadata;
 
   actions.forEach((action: any) => {
     const { actionType, actionCount } = action;
@@ -65,7 +90,7 @@ function consolidateActions(actions: any) {
     }
   });
 
-  return Object.values(consolidated);
+  return Object.values(reorderObject(consolidated));
 }
 
 const PlayerStats = ({ playerName, totalFpts, actions }: any) => {
