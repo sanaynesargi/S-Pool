@@ -48,6 +48,26 @@ const getFirstLetters = (str: string) =>
         .join("")
     : str.charAt(0);
 
+function consolidateActions(actions: any) {
+  const consolidated: any = {};
+
+  actions.forEach((action: any) => {
+    const { actionType, actionCount } = action;
+
+    if (!consolidated[actionType]) {
+      // First time encountering this actionType, add it to the map.
+      consolidated[actionType] = { ...action };
+    } else {
+      // Update the existing entry by summing the actionCount.
+      consolidated[actionType].actionCount += actionCount;
+      consolidated[actionType].fpts += action.fpts;
+      consolidated[actionType].count += action.count;
+    }
+  });
+
+  return Object.values(consolidated);
+}
+
 const PlayerStats = ({ playerName, totalFpts, actions }: any) => {
   return (
     <Box
@@ -70,7 +90,7 @@ const PlayerStats = ({ playerName, totalFpts, actions }: any) => {
           >{`FPTS: ${totalFpts}`}</Text>
         </HStack>
         <HStack align="stretch" justifyContent="space-between">
-          {actions.map((action: any) => (
+          {consolidateActions(actions).map((action: any) => (
             <VStack key={action.id}>
               <Tooltip
                 label={`${action.actionType}: ${action.actionValue} FPTS`}
@@ -89,6 +109,24 @@ const PlayerStats = ({ playerName, totalFpts, actions }: any) => {
     </Box>
   );
 };
+
+function consolidateData(data: any) {
+  const consolidated: any = {};
+
+  data.forEach((item: any) => {
+    const { type, count } = item;
+
+    if (!consolidated[type]) {
+      // First time encountering this type, add it to the map.
+      consolidated[type] = { type, count };
+    } else {
+      // Update the existing entry by summing the count.
+      consolidated[type].count += count;
+    }
+  });
+
+  return Object.values(consolidated);
+}
 
 const convertDataToSleeperLog = (data: any) => {
   let log: any[] = [];
@@ -110,7 +148,7 @@ const convertDataToSleeperLog = (data: any) => {
       tid,
       playerName,
       totalFpts,
-      actions: condensedActions,
+      actions: consolidateData(condensedActions),
     });
   }
 

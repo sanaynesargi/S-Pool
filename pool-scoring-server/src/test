@@ -1,0 +1,13 @@
+curl 'http://localhost:8000/api/end-game' \
+-X 'POST' \
+-H 'Accept: application/json, text/plain, */*' \
+-H 'Content-Type: application/json' \
+-H 'Origin: http://localhost:3000' \
+-H 'Content-Length: 620' \
+-H 'Accept-Language: en-US,en;q=0.9' \
+-H 'Host: localhost:8000' \
+-H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.1 Safari/605.1.15' \
+-H 'Referer: http://localhost:3000/' \
+-H 'Accept-Encoding: gzip, deflate' \
+-H 'Connection: keep-alive' \
+--data-binary '{"playerActionCounts":{"Sanay":{"No Result":29,"Ball In":8,"Opp. 8 Ball In":1,"8 Ball In":2,"4+ Ball In":1,"Scratch":2,"2 Ball In":2},"Aarav":{"Ball In":5,"Scratch":4,"No Result":10,"2 Ball In":2,"4+ Ball In":0,"3 Ball In":1,"8 Ball In":1,"Opp Ball In":1,"Opp. 8 Ball In":1},"Jai":{"No Result":19,"Ball In":5,"Opp Ball In":2,"2 Ball In":1,"3 Ball In":1,"Scratch":3,"Opp. 8 Ball In":1},"Sami":{"No Result":8,"Scratch":3,"Opp. 8 Ball In":1,"Ball In":4,"3 Ball In":1,"4+ Ball In":0}},"mode":"doubles","standings":{"Sanay":4,"Jai":2,"Sami":3,"Aarav":1},"playerGameCounts":{"Sanay":5,"Jai":2,"Sami":2,"Aarav":5},"matches":[]}'

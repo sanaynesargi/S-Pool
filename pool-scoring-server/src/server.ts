@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import sqlite3 from "sqlite3";
+import { v4 as uuidv4 } from "uuid";
 
 const app = express();
 const port = 8000;
@@ -9,6 +10,14 @@ app.use(express.json());
 app.use(cors());
 
 const db = new sqlite3.Database("mydatabase.db", (err) => {
+  if (err) {
+    console.error(err.message);
+  } else {
+    console.log("Connected to the SQLite database.");
+  }
+});
+
+const dbFantasy = new sqlite3.Database("fantasyDB.db", (err) => {
   if (err) {
     console.error(err.message);
   } else {
@@ -54,6 +63,94 @@ db.serialize(() => {
     mode TEXT,
     tournamentId INTEGER NOT NULL
 );`);
+});
+
+dbFantasy.serialize(() => {
+  dbFantasy.run(
+    `CREATE TABLE IF NOT EXISTS rosters (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    startTournamentId INTEGER NOT NULL,
+    leagueId TEXT NOT NULL,
+    playerId TEXT NOT NULL UNIQUE,
+    T8BI TEXT,
+    FPBI TEXT,
+    OPBI TEXT,
+    OBI TEXT,
+    S TEXT,
+    GSS TEXT
+  )`,
+    (err) => {
+      if (err) {
+        console.error(err.message);
+      } else {
+      }
+    }
+  );
+
+  dbFantasy.run(
+    `CREATE TABLE IF NOT EXISTS leagues (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    leagueId TEXT NOT NULL,
+    members TEXT
+  )`,
+    (err) => {
+      if (err) {
+        console.error(err.message);
+      } else {
+      }
+    }
+  );
+
+  dbFantasy.run(
+    `CREATE TABLE IF NOT EXISTS playerMap (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    teamName TEXT NOT NULL,
+    playerName TEXT NOT NULL,
+    playerId TEXT NOT NULL,
+    leagueId TEXT NOT NULL
+  )`,
+    (err) => {
+      if (err) {
+        console.error(err.message);
+      } else {
+      }
+    }
+  );
+
+  dbFantasy.run(
+    `CREATE TABLE IF NOT EXISTS matchups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    team1Id TEXT NOT NULL,
+    team2Id TEXT NOT NULL,
+    score1 REAL NOT NULL DEFAULT 0.0,
+    score2 REAL NOT NULL DEFAULT 0.0,
+    winnerId TEXT,
+    tournamentId INTEGER NOT NULL,
+    leagueId TEXT NOT NULL
+  )`,
+    (err) => {
+      if (err) {
+        console.error(err.message);
+      } else {
+      }
+    }
+  );
+
+  dbFantasy.run(
+    `CREATE TABLE IF NOT EXISTS guesses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    playerId TEXT NOT NULL,
+    guess REAL NOT NULL DEFAULT 0.0,
+    tournamentId INTEGER NOT NULL,
+    leagueId TEXT NOT NULL
+  )`,
+    (err) => {
+      if (err) {
+        console.error(err.message);
+      } else {
+      }
+    }
+  );
 });
 
 const incrementGamesPlayed = (playerNames: string[], mode: any) => {
@@ -119,17 +216,22 @@ async function getNextTournamentId(
   mode: string
 ): Promise<any> {
   return new Promise((resolve, reject) => {
+    let test = true;
+    if (!mode.includes("'")) {
+      test = false;
+    }
+
     db.get(
-      `SELECT MAX(tournamentId) AS maxTournamentId FROM ${tableName} WHERE mode = ${mode}`,
+      `SELECT MAX(tournamentId) AS maxTournamentId FROM ${tableName} WHERE mode = ${
+        test ? mode : `'${mode}'`
+      }`,
       [],
       (err, row: any) => {
         if (err) {
           reject(err);
         } else {
           // If there has never been a tournament, MAX(tournamentId) will be NULL, so we start with 1.
-          console.log(
-            (row.maxTournamentId ? parseInt(row.maxTournamentId) : 0) + 1
-          );
+
           resolve(
             (row.maxTournamentId ? parseInt(row.maxTournamentId) : 0) + 1
           );
@@ -1218,6 +1320,804 @@ app.get("/api/allPlayers/", (req, res) => {
 
     return res.json({ names });
   });
+});
+
+/*  _______________________ FANTASY GAME ENDPOINTS _________________________ */
+
+app.get("/api/fantasy/createLeague", (req, res) => {
+  const members = req.query.members;
+  if (!members) {
+    return res.status(400).send({ error: "Members string is required." });
+  }
+
+  const leagueId = uuidv4();
+
+  dbFantasy.run(
+    `INSERT INTO leagues (leagueId, members) VALUES (?, ?)`,
+    [leagueId, members],
+    (err) => {
+      if (err) {
+        console.error(err.message);
+        res.status(500).send({ error: "Failed to create league" });
+      } else {
+        res.status(200).send({ leagueId: leagueId });
+      }
+    }
+  );
+});
+
+app.post("/api/fantasy/addPlayer", async (req, res) => {
+  const { leagueId, playerName, teamName, ...rosterDetails } = req.body;
+
+  const t = (await getNextTournamentId("player_matchups", "'singles'")) - 1;
+
+  // Validate leagueId exists
+  dbFantasy.get(
+    `SELECT members FROM leagues WHERE leagueId = ?`,
+    [leagueId],
+    (err, row: any) => {
+      if (err) {
+        return res.status(500).send({ error: "Error querying leagues" });
+      }
+      if (!row) {
+        return res.status(404).send({ error: "League not found" });
+      }
+
+      // Validate playerName is a member
+      const members = row.members.split("|");
+      if (!members.includes(playerName)) {
+        return res
+          .status(400)
+          .send({ error: "Player is not a member of the league" });
+      }
+
+      // Insert into playerMap and rosters
+      const playerId = uuidv4();
+      dbFantasy.run(
+        `INSERT INTO playerMap (teamName, playerName, playerId, leagueId) VALUES (?, ?, ?, ?)`,
+        [teamName, playerName, playerId, leagueId],
+        (err) => {
+          if (err) {
+            return res
+              .status(500)
+              .send({ error: "Error inserting into playerMap" });
+          }
+
+          dbFantasy.run(
+            `INSERT INTO rosters (playerId, startTournamentId, leagueId, T8BI, FPBI, OPBI, OBI, S, GSS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              playerId,
+              t,
+              leagueId,
+              rosterDetails.T8BI,
+              rosterDetails.FPBI,
+              rosterDetails.OPBI,
+              rosterDetails.OBI,
+              rosterDetails.S,
+              rosterDetails.GSS,
+            ],
+            (err) => {
+              if (err) {
+                return res.status(500).send({
+                  error: `Error inserting into rosters: ${err.toString()}`,
+                });
+              }
+
+              res.status(201).send({ leagueId: leagueId, playerId: playerId });
+            }
+          );
+        }
+      );
+    }
+  );
+});
+
+app.get("/api/fantasy/checkPlayerInRoster", (req, res) => {
+  const { playerId, leagueId } = req.query;
+
+  // First, get the team name from the playerMap
+  dbFantasy.get(
+    `SELECT teamName FROM playerMap WHERE playerId = ? AND leagueId = ?`,
+    [playerId, leagueId],
+    (err, playerMapRow: any) => {
+      if (err) {
+        return res.status(500).send({ error: err.toString() });
+      }
+      if (!playerMapRow) {
+        return res
+          .status(404)
+          .send({ message: "Player not found in playerMap" });
+      }
+
+      const teamName = playerMapRow.teamName;
+
+      // Then, get the roster details
+      dbFantasy.get(
+        `SELECT * FROM rosters WHERE playerId = ? AND leagueId = ?`,
+        [playerId, leagueId],
+        (err, rosterRow: any) => {
+          if (err) {
+            return res.status(500).send({ error: err.toString() });
+          }
+          if (!rosterRow) {
+            return res
+              .status(404)
+              .send({ message: "Player not found in rosters" });
+          }
+
+          // Send back the roster details along with the team name
+          res.status(200).send({
+            message: "Player exists in rosters",
+            teamName: teamName,
+            playerId: playerId,
+            roster: {
+              T8BI: rosterRow.T8BI,
+              FPBI: rosterRow.FPBI,
+              OPBI: rosterRow.OPBI,
+              OBI: rosterRow.OBI,
+              S: rosterRow.S,
+              GSS: rosterRow.GSS,
+              // Include other roster fields if necessary
+            },
+          });
+        }
+      );
+    }
+  );
+});
+
+app.post("/api/fantasy/getPlayerStats", (req, res) => {
+  const { playerId, leagueId, adder, roster } = req.body;
+
+  if (!playerId || !leagueId || typeof adder !== "number" || !roster) {
+    return res.json({ error: "Invalid Request" });
+  }
+
+  dbFantasy.get(
+    `SELECT startTournamentId FROM rosters WHERE playerId = ? AND leagueId = ?`,
+    [playerId, leagueId],
+    (err, row: any) => {
+      if (err) {
+        return res.status(500).send({ error: err.message });
+      }
+      if (!row) {
+        return res.status(404).send({ message: "Roster not found" });
+      }
+
+      const promises = Object.keys(roster).map((fantasyStat) => {
+        let newTournamentId = parseInt(row.startTournamentId) + adder;
+        let playerName = roster[fantasyStat];
+
+        return new Promise((resolve, reject) => {
+          db.all(
+            `SELECT * FROM player_actions WHERE tournamentId = ? AND playerName = ?`,
+            [newTournamentId, playerName],
+            (err, actions) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(actions);
+              }
+            }
+          );
+        });
+      });
+
+      Promise.all(promises)
+        .then((allActions) => {
+          let FPBI = { count: [0, 0], value: 0, player: "" };
+          let OPBI = { count: [0, 0], value: 0, player: "" };
+          let T8BI = { count: [0, 0], value: 0, player: "" };
+          let OBI = { count: 0, value: 0, player: "" };
+          let S = { count: 0, value: 0, player: "" };
+
+          let x = Object.keys(roster);
+          for (let i = 0; i < x.length; i++) {
+            const fp = roster[x[i]];
+            const stat = x[i];
+
+            allActions.flat().forEach((action: any) => {
+              if (action.playerName != fp) {
+                return;
+              }
+
+              if (stat == "FPBI") {
+                FPBI.player = fp;
+              } else if (stat == "T8BI") {
+                T8BI.player = fp;
+              } else if (stat == "OPBI") {
+                OPBI.player = fp;
+              } else if (stat == "OBI") {
+                OBI.player = fp;
+              } else if (stat == "S") {
+                S.player = fp;
+              }
+
+              switch (action.actionType) {
+                case "3 Ball In":
+                  if (stat != "FPBI") {
+                    break;
+                  }
+                  FPBI.count[0] += action.actionCount;
+                  FPBI.value += Math.abs(
+                    action.actionCount * action.actionValue
+                  );
+                  FPBI.player = action.playerName;
+                  break;
+                case "4+ Ball In":
+                  if (stat != "FPBI") {
+                    break;
+                  }
+                  FPBI.count[1] += action.actionCount;
+                  FPBI.value += Math.abs(
+                    action.actionCount * action.actionValue
+                  );
+                  FPBI.player = action.playerName;
+                  break;
+                case "Ball In":
+                  if (stat != "OPBI") {
+                    break;
+                  }
+                  OPBI.count[0] += action.actionCount;
+                  OPBI.value += Math.abs(
+                    action.actionCount * action.actionValue
+                  );
+                  OPBI.player = action.playerName;
+                  break;
+                case "2 Ball In":
+                  if (stat != "OPBI") {
+                    break;
+                  }
+                  OPBI.count[1] += action.actionCount;
+                  OPBI.value += Math.abs(
+                    action.actionCount * action.actionValue
+                  );
+                  OPBI.player = action.playerName;
+                  break;
+                case "8 Ball In":
+                  if (stat != "T8BI") {
+                    break;
+                  }
+                  T8BI.count[0] += action.actionCount;
+                  T8BI.value += action.actionCount * action.actionValue;
+                  T8BI.player = action.playerName;
+                  break;
+                case "Opp. 8 Ball In":
+                  if (stat != "T8BI") {
+                    break;
+                  }
+                  T8BI.count[1] += action.actionCount;
+                  T8BI.value += action.actionCount * action.actionValue;
+                  T8BI.player = action.playerName;
+                  break;
+                case "Opp Ball In":
+                  if (stat != "OBI") {
+                    break;
+                  }
+                  OBI.count += action.actionCount;
+                  OBI.value += Math.abs(
+                    action.actionCount * action.actionValue
+                  );
+                  OBI.player = action.playerName;
+                  break;
+                case "Scratch":
+                  if (stat != "S") {
+                    break;
+                  }
+                  S.count += action.actionCount;
+                  S.value += Math.abs(action.actionCount * action.actionValue);
+                  S.player = action.playerName;
+                  break;
+              }
+            });
+          }
+
+          res.status(200).send({ FPBI, OPBI, T8BI, OBI, S });
+        })
+        .catch((error) => {
+          res.status(500).send({ error: error.message });
+        });
+    }
+  );
+});
+
+app.get("/api/fantasy/createMatchups", (req, res) => {
+  const leagueId = req.query.leagueId;
+  const numWeeks = parseInt(req.query.numWeeks as string);
+
+  if (!leagueId || isNaN(numWeeks)) {
+    return res.status(400).send({ error: "Invalid input" });
+  }
+
+  dbFantasy.all(
+    `SELECT playerId, startTournamentId FROM rosters WHERE leagueId = ?`,
+    [leagueId],
+    (err, rosters: any) => {
+      if (err) {
+        return res.status(500).send({ error: err.message });
+      }
+
+      if (rosters.length < 2) {
+        return res.status(400).send({ error: "Not enough teams for matchups" });
+      }
+
+      let matchups = [];
+
+      for (let week = 1; week <= numWeeks; week++) {
+        for (let i = 0; i < rosters.length; i += 2) {
+          // Ensuring not to exceed array bounds
+          if (i + 1 >= rosters.length) {
+            break;
+          }
+
+          const team1 = rosters[i];
+          const team2 = rosters[i + 1];
+
+          matchups.push({
+            leagueId: leagueId,
+            team1Id: team1.playerId,
+            team2Id: team2.playerId,
+            tournamentId: team1.startTournamentId + week - 1,
+          });
+        }
+      }
+
+      // Insert matchups into the database
+      const insertMatchup = dbFantasy.prepare(
+        `INSERT INTO matchups (team1Id, team2Id, winnerId, tournamentId, leagueId) VALUES (?, ?, '', ?, ?)`
+      );
+      matchups.forEach((matchup) => {
+        insertMatchup.run([
+          matchup.team1Id,
+          matchup.team2Id,
+          matchup.tournamentId,
+          matchup.leagueId,
+        ]);
+      });
+
+      insertMatchup.finalize();
+
+      res.status(200).send({ message: "Matchups created successfully" });
+    }
+  );
+});
+
+app.get("/api/fantasy/getMatchups", (req, res) => {
+  const leagueId = req.query.leagueId;
+
+  if (!leagueId) {
+    return res.status(400).send({ error: "League ID is required" });
+  }
+
+  dbFantasy.all(
+    `SELECT * FROM matchups WHERE leagueId = ?`,
+    [leagueId],
+    (err, matchups: any) => {
+      if (err) {
+        return res.status(500).send({ error: err.message });
+      }
+
+      let matchupPromises = matchups.map((matchup: any) => {
+        return new Promise((resolve, reject) => {
+          dbFantasy.get(
+            `SELECT teamName FROM playerMap WHERE playerId = ? AND leagueId = ?`,
+            [matchup.team1Id, leagueId],
+            (err, team1: any) => {
+              if (err) {
+                reject(err);
+              } else {
+                dbFantasy.get(
+                  `SELECT teamName FROM playerMap WHERE playerId = ? AND leagueId = ?`,
+                  [matchup.team2Id, leagueId],
+                  (err, team2: any) => {
+                    if (err) {
+                      reject(err);
+                    } else {
+                      resolve({
+                        ...matchup,
+                        team1Name: team1 ? team1.teamName : "Unknown Team 1",
+                        team2Name: team2 ? team2.teamName : "Unknown Team 2",
+                      });
+                    }
+                  }
+                );
+              }
+            }
+          );
+        });
+      });
+
+      Promise.all(matchupPromises)
+        .then((result) => {
+          res.status(200).send(result);
+        })
+        .catch((error) => {
+          res.status(500).send({ error: error.message });
+        });
+    }
+  );
+});
+
+app.get("/api/fantasy/getCurrentMatchup", async (req, res) => {
+  const leagueId = req.query.leagueId;
+  const playerId = req.query.playerId;
+
+  if (!leagueId) {
+    return res.status(400).send({ error: "League ID is required" });
+  }
+
+  if (!playerId) {
+    return res.status(400).send({ error: "Player ID is required" });
+  }
+
+  try {
+    const currentTournamentId =
+      (await getNextTournamentId("player_matchups", "'singles'")) - 1;
+
+    dbFantasy.get(
+      `SELECT * FROM matchups WHERE leagueId = ? AND tournamentId = ? AND (team1Id = ? OR team2Id = ?)`,
+      [leagueId, currentTournamentId, playerId, playerId],
+      (err, matchup: any) => {
+        if (err) {
+          return res.status(500).send({ error: err.message });
+        }
+
+        if (!matchup) {
+          return res.status(404).send({ message: "Matchup not found" });
+        }
+
+        // Fetch team names from playerMap using the player IDs from the matchup
+        const team1Promise = new Promise((resolve, reject) => {
+          dbFantasy.get(
+            `SELECT teamName FROM playerMap WHERE playerId = ? AND leagueId = ?`,
+            [matchup.team1Id, leagueId],
+            (err, team1) => {
+              if (err) reject(err);
+              else resolve(team1);
+            }
+          );
+        });
+
+        const team2Promise = new Promise((resolve, reject) => {
+          dbFantasy.get(
+            `SELECT teamName FROM playerMap WHERE playerId = ? AND leagueId = ?`,
+            [matchup.team2Id, leagueId],
+            (err, team2) => {
+              if (err) reject(err);
+              else resolve(team2);
+            }
+          );
+        });
+
+        Promise.all([team1Promise, team2Promise])
+          .then(([team1, team2]: any) => {
+            res.status(200).send({
+              ...matchup,
+              team1Name: team1 ? team1.teamName : "Unknown Team 1",
+              team2Name: team2 ? team2.teamName : "Unknown Team 2",
+            });
+          })
+          .catch((error) => {
+            res.status(500).send({ error: error.message });
+          });
+      }
+    );
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+});
+
+const scorePlayer = (roster: any, allActions: any) => {
+  let FPBI = { count: [0, 0], value: 0, player: "" };
+  let OPBI = { count: [0, 0], value: 0, player: "" };
+  let T8BI = { count: [0, 0], value: 0, player: "" };
+  let OBI = { count: 0, value: 0, player: "" };
+  let S = { count: 0, value: 0, player: "" };
+
+  let x = Object.keys(roster);
+  for (let i = 0; i < x.length; i++) {
+    const fp = roster[x[i]];
+    const stat = x[i];
+
+    allActions.flat().forEach((action: any) => {
+      if (action.playerName != fp) {
+        return;
+      }
+
+      if (stat == "FPBI") {
+        FPBI.player = fp;
+      } else if (stat == "T8BI") {
+        T8BI.player = fp;
+      } else if (stat == "OPBI") {
+        OPBI.player = fp;
+      } else if (stat == "OBI") {
+        OBI.player = fp;
+      } else if (stat == "S") {
+        S.player = fp;
+      }
+
+      switch (action.actionType) {
+        case "3 Ball In":
+          if (stat != "FPBI") {
+            break;
+          }
+          FPBI.count[0] += action.actionCount;
+          FPBI.value += Math.abs(action.actionCount * action.actionValue);
+          FPBI.player = action.playerName;
+          break;
+        case "4+ Ball In":
+          if (stat != "FPBI") {
+            break;
+          }
+          FPBI.count[1] += action.actionCount;
+          FPBI.value += Math.abs(action.actionCount * action.actionValue);
+          FPBI.player = action.playerName;
+          break;
+        case "Ball In":
+          if (stat != "OPBI") {
+            break;
+          }
+          OPBI.count[0] += action.actionCount;
+          OPBI.value += Math.abs(action.actionCount * action.actionValue);
+          OPBI.player = action.playerName;
+          break;
+        case "2 Ball In":
+          if (stat != "OPBI") {
+            break;
+          }
+          OPBI.count[1] += action.actionCount;
+          OPBI.value += Math.abs(action.actionCount * action.actionValue);
+          OPBI.player = action.playerName;
+          break;
+        case "8 Ball In":
+          if (stat != "T8BI") {
+            break;
+          }
+          T8BI.count[0] += action.actionCount;
+          T8BI.value += action.actionCount * action.actionValue;
+          T8BI.player = action.playerName;
+          break;
+        case "Opp. 8 Ball In":
+          if (stat != "T8BI") {
+            break;
+          }
+          T8BI.count[1] += action.actionCount;
+          T8BI.value += action.actionCount * action.actionValue;
+          T8BI.player = action.playerName;
+          break;
+        case "Opp Ball In":
+          if (stat != "OBI") {
+            break;
+          }
+          OBI.count += action.actionCount;
+          OBI.value += Math.abs(action.actionCount * action.actionValue);
+          OBI.player = action.playerName;
+          break;
+        case "Scratch":
+          if (stat != "S") {
+            break;
+          }
+          S.count += action.actionCount;
+          S.value += Math.abs(action.actionCount * action.actionValue);
+          S.player = action.playerName;
+          break;
+      }
+    });
+  }
+
+  return { FPBI, OPBI, T8BI, OBI, S };
+};
+
+async function scoreMatchup(
+  playerId1: string,
+  playerId2: string,
+  leagueId: string,
+  tournamentId: number
+) {
+  try {
+    const rosters: any = await getRosters([playerId1, playerId2], leagueId);
+    let scores: any = {};
+
+    for (const roster of rosters) {
+      const actions = await getPlayerActions(tournamentId, leagueId);
+      let totalScore = calculateTotalScore(actions, roster);
+      scores[roster.playerId] = totalScore;
+    }
+
+    return scores;
+  } catch (err) {
+    console.error(err.message);
+    throw err;
+  }
+}
+
+function getRosters(playerIds: any, leagueId: any) {
+  return new Promise((resolve, reject) => {
+    dbFantasy.all(
+      `SELECT * FROM rosters WHERE leagueId = ? AND playerId IN (?, ?)`,
+      [leagueId, ...playerIds],
+      (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      }
+    );
+  });
+}
+
+function getPlayerActions(tournamentId: any, leagueId: any) {
+  return new Promise(async (resolve, reject) => {
+    db.all(
+      `SELECT * FROM player_actions WHERE tournamentId = ?`,
+      [tournamentId],
+      (err, actions) => {
+        if (err) reject(err);
+        else resolve(actions);
+      }
+    );
+  });
+}
+
+function calculateTotalScore(actions: any, roster: any) {
+  let scores = scorePlayer(roster, actions);
+  let totalScore = 0;
+
+  for (const action of Object.values(scores)) {
+    // Replace with actual scoring logic
+    totalScore += action.value;
+  }
+  return totalScore;
+}
+
+function getPlayerNameFromId(playerId: string, leagueId: string) {
+  return new Promise((resolve, reject) => {
+    dbFantasy.get(
+      `SELECT playerName FROM playerMap WHERE playerId = ? AND leagueId = ?`,
+      [playerId, leagueId],
+      (err, row: any) => {
+        if (err) {
+          reject(err);
+        } else if (row) {
+          resolve(row);
+        } else {
+          reject("");
+        }
+      }
+    );
+  });
+}
+
+function getPlayerIdFromName(playerName: string, leagueId: string) {
+  return new Promise((resolve, reject) => {
+    dbFantasy.get(
+      `SELECT playerId FROM playerMap WHERE playerName = ? AND leagueId = ?`,
+      [playerName, leagueId],
+      (err, row: any) => {
+        if (err) {
+          reject(err);
+        } else if (row) {
+          resolve(row);
+        } else {
+          reject("");
+        }
+      }
+    );
+  });
+}
+
+app.get("/api/fantasy/scoreCurrentMatchup", async (req, res) => {
+  const leagueId = req.query.leagueId;
+
+  if (!leagueId) {
+    return res.status(400).send({ error: "League ID is required" });
+  }
+
+  try {
+    const currentTournamentId =
+      (await getNextTournamentId("player_matchups", "'singles'")) - 1;
+
+    // Step 2: Fetch all league members
+    dbFantasy.get(
+      `SELECT members FROM leagues WHERE leagueId = ?`,
+      [leagueId],
+      async (err, league: any) => {
+        if (err) {
+          return res.status(500).send({ error: err.message });
+        }
+
+        if (!league) {
+          return res.status(404).send({ message: "League not found" });
+        }
+
+        const members = league.members.split("|");
+
+        const scorePromises = members.map((memberId: any) => {
+          // Step 3: Find the member's matchup
+          return new Promise(async (matchupResolve, matchupReject) => {
+            const mid: any = await getPlayerIdFromName(
+              memberId,
+              leagueId as string
+            );
+
+            let memId = mid.playerId;
+
+            dbFantasy.get(
+              `SELECT * FROM matchups WHERE leagueId = ? AND tournamentId = ? AND (team1Id = ? OR team2Id = ?)`,
+              [leagueId, currentTournamentId, memId, memId],
+              (err, matchup: any) => {
+                if (err) {
+                  matchupReject(err);
+                } else {
+                  // Proceed with scoring if matchup exists
+                  if (matchup && matchup.winnerId === "") {
+                    // Assuming empty string means unscored
+                    // Step 4: Use the scoring functionality (assume it's a function that returns a promise)
+                    scoreMatchup(
+                      matchup.team1Id,
+                      matchup.team2Id,
+                      leagueId as string,
+                      currentTournamentId
+                    )
+                      .then(async (data) => {
+                        const sql = `UPDATE matchups 
+                        SET score1 = ?, score2 = ?, winnerId = ?
+                        WHERE leagueId = ? AND tournamentId = ? AND team1Id = ? AND team2Id = ?`;
+
+                        let player1Score = 0;
+                        let player2Score = 0;
+                        let winner: any = "";
+
+                        const player1Id = Object.keys(data)[0];
+                        const player2Id = Object.keys(data)[1];
+
+                        if (Object.keys(data)[0] == matchup.team1Id) {
+                          player1Score = data[player1Id];
+                          player2Score = data[player2Id];
+                        } else {
+                          player1Score = data[player2Id];
+                          player2Score = data[player1Id];
+                        }
+
+                        winner =
+                          player1Score > player2Score ? player1Id : player2Id;
+
+                        const items = [
+                          player1Score,
+                          player2Score,
+                          winner,
+                          leagueId,
+                          currentTournamentId,
+                          player1Id,
+                          player2Id,
+                        ];
+
+                        dbFantasy.run(sql, items, function (err) {
+                          console.log(`ERR: ${err}`);
+                        });
+                      })
+                      .catch(matchupReject);
+                  } else {
+                    matchupResolve(null); // No action needed for this member
+                  }
+                }
+              }
+            );
+          });
+        });
+
+        Promise.all(scorePromises)
+          .then((results) => {
+            // Filter null results and return the scored matchups
+            res.status(200).send(results.filter((matchup) => matchup !== null));
+          })
+          .catch((error) => {
+            res.status(500).send({ error: error.message });
+          });
+      }
+    );
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+  res.send({ success: true });
 });
 
 app.listen(port, () => {
