@@ -244,7 +244,7 @@ async function getNextTournamentId(
 const insertMatchups = async (matchups: Matchup[], mode: string) => {
   const insertStatement = `INSERT INTO player_matchups (player1, player2, winner, ballsWon, overtime, mode, tournamentId) VALUES (?, ?, ?, ?, ?, ?, ?);`;
 
-  const t = await getNextTournamentId("player_matchups", mode);
+  const t = await getNextTournamentId("player_actions", mode);
 
   matchups.forEach((matchup) => {
     db.run(
@@ -324,7 +324,7 @@ const addPlayerActions = async (actions: PlayerAction[], mode: string) => {
     return;
   }
 
-  const t = await getNextTournamentId("player_matchups", mode);
+  const t = await getNextTournamentId("player_actions", mode);
 
   return new Promise<void>((resolve, reject) => {
     const placeholders = newActions.map(() => "(?, ?, ?, ?, ?, ?)").join(", ");
@@ -1349,7 +1349,7 @@ app.get("/api/fantasy/createLeague", (req, res) => {
 app.post("/api/fantasy/addPlayer", async (req, res) => {
   const { leagueId, playerName, teamName, ...rosterDetails } = req.body;
 
-  const t = (await getNextTournamentId("player_matchups", "'singles'")) - 1;
+  const t = (await getNextTournamentId("player_actions", "'singles'")) - 1;
 
   // Validate leagueId exists
   dbFantasy.get(
@@ -1752,7 +1752,7 @@ app.get("/api/fantasy/getCurrentMatchup", async (req, res) => {
 
   try {
     const currentTournamentId =
-      (await getNextTournamentId("player_matchups", "'singles'")) - 1;
+      (await getNextTournamentId("player_actions", "'singles'")) - 1;
 
     dbFantasy.get(
       `SELECT * FROM matchups WHERE leagueId = ? AND tournamentId = ? AND (team1Id = ? OR team2Id = ?)`,
@@ -2013,7 +2013,7 @@ app.get("/api/fantasy/scoreCurrentMatchup", async (req, res) => {
 
   try {
     const currentTournamentId =
-      (await getNextTournamentId("player_matchups", "'singles'")) - 1;
+      (await getNextTournamentId("player_actions", "'singles'")) - 1;
 
     // Step 2: Fetch all league members
     dbFantasy.get(
