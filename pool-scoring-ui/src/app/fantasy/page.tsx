@@ -1,7 +1,11 @@
+"use client";
 import React from "react";
 import { Box, VStack, Heading, Button, Spacer } from "@chakra-ui/react";
+import { useRouter } from "next/navigation";
 
 const MainPage = () => {
+  const router = useRouter();
+
   return (
     <Box
       maxW="sm"
@@ -25,16 +29,36 @@ const MainPage = () => {
           </Heading>
         </VStack>
         <Spacer />
-        <Button colorScheme="blue" w="full" size="lg">
+        <Button
+          colorScheme="blue"
+          w="full"
+          size="lg"
+          onClick={() => router.push("/fantasy/roster")}
+        >
           Enter Roster
         </Button>
-        <Button colorScheme="blue" w="full" size="lg">
+        <Button
+          colorScheme="blue"
+          w="full"
+          size="lg"
+          onClick={() => router.push("/fantasy/matchup")}
+        >
           Matchup
         </Button>
-        <Button colorScheme="blue" w="full" size="lg">
+        <Button
+          colorScheme="blue"
+          w="full"
+          size="lg"
+          onClick={() => router.push("/fantasy/scoreboard")}
+        >
           Scoreboard
         </Button>
-        <Button colorScheme="blue" w="full" size="lg">
+        <Button
+          colorScheme="blue"
+          w="full"
+          size="lg"
+          onClick={() => router.push("/fantasy/standings")}
+        >
           Qualification
         </Button>
         <Spacer />
