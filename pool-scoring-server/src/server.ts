@@ -577,8 +577,17 @@ app.get("/api/average-points-per-game", (req, res) => {
   }
 
   const seasonFilter = seasonId
-    ? `JOIN (SELECT startSinglesId, endSinglesId FROM season_map WHERE id = ${seasonId}) sm 
-       ON a.tournamentId BETWEEN sm.startSinglesId AND sm.endSinglesId`
+    ? `JOIN (SELECT ${
+        mode === "doubles"
+          ? "startDoublesId, endDoublesId"
+          : "startSinglesId, endSinglesId"
+      } 
+         FROM season_map WHERE id = ${seasonId}) sm 
+     ON a.tournamentId BETWEEN sm.${
+       mode === "doubles"
+         ? "startDoublesId AND sm.endDoublesId"
+         : "startSinglesId AND sm.endSinglesId"
+     }`
     : "";
 
   const sql = `
@@ -618,8 +627,17 @@ app.get("/api/average-points-per-tournament-game", (req, res) => {
   }
 
   const seasonFilter = seasonId
-    ? `JOIN (SELECT startSinglesId, endSinglesId FROM season_map WHERE id = ${seasonId}) sm 
-       ON ptg.tournamentId BETWEEN sm.startSinglesId AND sm.endSinglesId`
+    ? `JOIN (SELECT ${
+        mode === "doubles"
+          ? "startDoublesId, endDoublesId"
+          : "startSinglesId, endSinglesId"
+      } 
+         FROM season_map WHERE id = ${seasonId}) sm 
+     ON ptg.tournamentId BETWEEN sm.${
+       mode === "doubles"
+         ? "startDoublesId AND sm.endDoublesId"
+         : "startSinglesId AND sm.endSinglesId"
+     }`
     : "";
 
   const sql = `
@@ -660,8 +678,12 @@ app.get("/api/average-standings-per-game", (req, res) => {
 
   const seasonFilter = seasonId
     ? `AND tournamentId BETWEEN 
-        (SELECT startSinglesId FROM season_map WHERE id = ${seasonId}) AND 
-        (SELECT endSinglesId FROM season_map WHERE id = ${seasonId})`
+       (SELECT ${
+         mode === "doubles"
+           ? "startDoublesId, endDoublesId"
+           : "startSinglesId, endSinglesId"
+       } 
+        FROM season_map WHERE id = ${seasonId})`
     : "";
 
   const sql = `
@@ -697,8 +719,12 @@ app.get("/api/total-tournaments-played", (req, res) => {
 
   const seasonFilter = seasonId
     ? `AND tournamentId BETWEEN 
-        (SELECT startSinglesId FROM season_map WHERE id = ${seasonId}) AND 
-        (SELECT endSinglesId FROM season_map WHERE id = ${seasonId})`
+       (SELECT ${
+         mode === "doubles"
+           ? "startDoublesId, endDoublesId"
+           : "startSinglesId, endSinglesId"
+       } 
+        FROM season_map WHERE id = ${seasonId})`
     : "";
 
   const sql = `
@@ -734,8 +760,12 @@ app.get("/api/player-ppt", (req, res) => {
 
   const seasonFilter = seasonId
     ? `AND tournamentId BETWEEN 
-        (SELECT startSinglesId FROM season_map WHERE id = ${seasonId}) AND 
-        (SELECT endSinglesId FROM season_map WHERE id = ${seasonId})`
+       (SELECT ${
+         mode === "doubles"
+           ? "startDoublesId, endDoublesId"
+           : "startSinglesId, endSinglesId"
+       } 
+        FROM season_map WHERE id = ${seasonId})`
     : "";
 
   const sql = `
@@ -785,8 +815,12 @@ app.get("/api/player-tt", (req, res) => {
 
   const seasonFilter = seasonId
     ? `AND tournamentId BETWEEN 
-        (SELECT startSinglesId FROM season_map WHERE id = ${seasonId}) AND 
-        (SELECT endSinglesId FROM season_map WHERE id = ${seasonId})`
+       (SELECT ${
+         mode === "doubles"
+           ? "startDoublesId, endDoublesId"
+           : "startSinglesId, endSinglesId"
+       } 
+        FROM season_map WHERE id = ${seasonId})`
     : "";
 
   const sql = `
@@ -834,9 +868,13 @@ app.get("/api/player-actions-stats", (req, res) => {
   }
 
   const seasonFilter = seasonId
-    ? `AND tournamentId BETWEEN 
-        (SELECT startSinglesId FROM season_map WHERE id = ${seasonId}) AND 
-        (SELECT endSinglesId FROM season_map WHERE id = ${seasonId})`
+    ? `AND pa.tournamentId BETWEEN 
+       (SELECT ${
+         mode === "doubles"
+           ? "startDoublesId, endDoublesId"
+           : "startSinglesId, endSinglesId"
+       } 
+        FROM season_map WHERE id = ${seasonId})`
     : "";
 
   const sql = `
@@ -889,10 +927,13 @@ app.get("/api/player-actions-stats-averages", (req, res) => {
 
   const seasonFilter = seasonId
     ? `AND pa.tournamentId BETWEEN 
-        (SELECT startSinglesId FROM season_map WHERE id = ${seasonId}) AND 
-        (SELECT endSinglesId FROM season_map WHERE id = ${seasonId})`
+       (SELECT ${
+         mode === "doubles"
+           ? "startDoublesId, endDoublesId"
+           : "startSinglesId, endSinglesId"
+       } 
+        FROM season_map WHERE id = ${seasonId})`
     : "";
-
   const sql = `
     SELECT 
       pa.playerName, 
@@ -950,8 +991,12 @@ app.get("/api/player-actions-stats-average-tournaments", (req, res) => {
 
   const seasonFilter = seasonId
     ? `AND pa.tournamentId BETWEEN 
-        (SELECT startSinglesId FROM season_map WHERE id = ${seasonId}) AND 
-        (SELECT endSinglesId FROM season_map WHERE id = ${seasonId})`
+       (SELECT ${
+         mode === "doubles"
+           ? "startDoublesId, endDoublesId"
+           : "startSinglesId, endSinglesId"
+       } 
+        FROM season_map WHERE id = ${seasonId})`
     : "";
 
   const sql = `
