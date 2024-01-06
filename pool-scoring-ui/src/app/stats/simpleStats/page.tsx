@@ -17,6 +17,7 @@ import {
   Image,
   Center,
   Tooltip,
+  Select,
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -106,41 +107,59 @@ const PlayerList = () => {
   const [sortField, setSortField] = useState<keyof Player | null>(null);
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [isLoading, setIsLoading] = useState(true);
+  const [seasons, setSeasons] = useState([]);
+  const [selectedSeason, setSelectedSeason] = useState("");
+
+  useEffect(() => {
+    // Fetch the list of seasons
+    const fetchSeasons = async () => {
+      try {
+        const response = await axios.get(`http://${apiUrl}/getSeasons`);
+        setSeasons(response.data);
+      } catch (error) {
+        console.error("Error fetching seasons:", error);
+      }
+    };
+
+    fetchSeasons();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       const gamesResS = await axios.get(
         `http://${apiUrl}/average-points-per-tournament-game`,
-        { params: { mode: "singles" } }
+        { params: { mode: "singles", seasonId: selectedSeason ?? null } }
       );
 
       const gamesResD = await axios.get(
         `http://${apiUrl}/average-points-per-tournament-game`,
-        { params: { mode: "doubles" } }
+        { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
       );
 
       const tournamentsResS = await axios.get(
         `http://${apiUrl}/average-points-per-game`,
-        { params: { mode: "singles" } }
+        { params: { mode: "singles", seasonId: selectedSeason ?? null } }
       );
 
       const tournamentsResD = await axios.get(
         `http://${apiUrl}/average-points-per-game`,
-        { params: { mode: "doubles" } }
+        { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
       );
 
-      const pptSingles = await axios.get(
-        `http://${apiUrl}/player-ppt?mode=singles`
-      );
-      const pptDoubles = await axios.get(
-        `http://${apiUrl}/player-ppt?mode=doubles`
-      );
+      const pptSingles = await axios.get(`http://${apiUrl}/player-ppt`, {
+        params: { mode: "singles", seasonId: selectedSeason ?? null },
+      });
+      const pptDoubles = await axios.get(`http://${apiUrl}/player-ppt`, {
+        params: { mode: "doubles", seasonId: selectedSeason ?? null },
+      });
 
       const bwtSingles = await axios.get(
-        `http://${apiUrl}/tournamentBestWorst?mode=singles`
+        `http://${apiUrl}/tournamentBestWorst`,
+        { params: { mode: "singles", seasonId: selectedSeason ?? null } }
       );
       const bwtDoubles = await axios.get(
-        `http://${apiUrl}/tournamentBestWorst?mode=doubles`
+        `http://${apiUrl}/tournamentBestWorst`,
+        { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
       );
 
       // Sort the data
@@ -171,7 +190,7 @@ const PlayerList = () => {
     };
 
     fetchData();
-  }, []);
+  }, [selectedSeason]);
 
   const router = useRouter();
 
@@ -224,7 +243,20 @@ const PlayerList = () => {
           w="full"
           py={2}
         >
-          <Heading size="md">Simple Stats</Heading>
+          <HStack>
+            <Heading size="md">Simple Stats</Heading>
+            <Select
+              placeholder="Select Season"
+              onChange={(e) => setSelectedSeason(e.target.value)}
+              maxW="md"
+            >
+              {Object.entries(seasons).map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
+                </option>
+              ))}
+            </Select>
+          </HStack>
           <Button onClick={() => setPlayers(playersS)}>Singles</Button>
           <Button onClick={() => setPlayers(playersD)}>Doubles</Button>
         </Flex>

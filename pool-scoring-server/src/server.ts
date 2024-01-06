@@ -576,19 +576,20 @@ app.get("/api/average-points-per-game", (req, res) => {
       .json({ Error: "Invalid Request: mode parameter is required" });
   }
 
-  const seasonFilter = seasonId
-    ? `JOIN (SELECT ${
-        mode === "doubles"
-          ? "startDoublesId, endDoublesId"
-          : "startSinglesId, endSinglesId"
-      } 
+  const seasonFilter =
+    typeof seasonId == "number"
+      ? `JOIN (SELECT ${
+          mode === "doubles"
+            ? "startDoublesId, endDoublesId"
+            : "startSinglesId, endSinglesId"
+        } 
          FROM season_map WHERE id = ${seasonId}) sm 
      ON a.tournamentId BETWEEN sm.${
        mode === "doubles"
          ? "startDoublesId AND sm.endDoublesId"
          : "startSinglesId AND sm.endSinglesId"
      }`
-    : "";
+      : "";
 
   const sql = `
     SELECT a.playerName, 
@@ -605,13 +606,13 @@ app.get("/api/average-points-per-game", (req, res) => {
     if (err) {
       return res.status(500).send(err.message);
     } else {
-      const averagePointsPerGame = rows.map((row: any) => ({
-        playerName: row.playerName,
-        averagePoints:
+      const averagePointsPerGame = rows.reduce((acc: any, row: any) => {
+        acc[row.playerName] =
           row.gamesPlayed > 0
             ? (row.totalPoints / row.gamesPlayed).toFixed(2)
-            : "0.00",
-      }));
+            : "0.00";
+        return acc;
+      }, {});
       res.status(200).json(averagePointsPerGame);
     }
   });
@@ -626,19 +627,20 @@ app.get("/api/average-points-per-tournament-game", (req, res) => {
       .json({ Error: "Invalid Request: mode parameter is required" });
   }
 
-  const seasonFilter = seasonId
-    ? `JOIN (SELECT ${
-        mode === "doubles"
-          ? "startDoublesId, endDoublesId"
-          : "startSinglesId, endSinglesId"
-      } 
+  const seasonFilter =
+    typeof seasonId == "number"
+      ? `JOIN (SELECT ${
+          mode === "doubles"
+            ? "startDoublesId, endDoublesId"
+            : "startSinglesId, endSinglesId"
+        } 
          FROM season_map WHERE id = ${seasonId}) sm 
      ON pa.tournamentId BETWEEN sm.${
        mode === "doubles"
          ? "startDoublesId AND sm.endDoublesId"
          : "startSinglesId AND sm.endSinglesId"
      }`
-    : "";
+      : "";
 
   const sql = `
     SELECT ptg.playerName, 
@@ -738,8 +740,9 @@ app.get("/api/player-ppt", (req, res) => {
       .json({ Error: "Invalid Request: mode parameter is required" });
   }
 
-  const seasonFilter = seasonId
-    ? `AND tournamentId BETWEEN 
+  const seasonFilter =
+    typeof seasonId == "number"
+      ? `AND tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
        } FROM season_map WHERE id = ${seasonId})
@@ -747,7 +750,7 @@ app.get("/api/player-ppt", (req, res) => {
        (SELECT ${
          mode === "doubles" ? "endDoublesId" : "endSinglesId"
        } FROM season_map WHERE id = ${seasonId})`
-    : "";
+      : "";
 
   const sql = `
     SELECT 
@@ -795,8 +798,9 @@ app.get("/api/player-tt", (req, res) => {
       .json({ Error: "Invalid Request: mode parameter is required" });
   }
 
-  const seasonFilter = seasonId
-    ? `AND tournamentId BETWEEN 
+  const seasonFilter =
+    typeof seasonId == "number"
+      ? `AND tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
        } FROM season_map WHERE id = ${seasonId})
@@ -804,7 +808,7 @@ app.get("/api/player-tt", (req, res) => {
        (SELECT ${
          mode === "doubles" ? "endDoublesId" : "endSinglesId"
        } FROM season_map WHERE id = ${seasonId})`
-    : "";
+      : "";
 
   const sql = `
     SELECT 
@@ -849,16 +853,17 @@ app.get("/api/player-actions-stats", (req, res) => {
       .status(404)
       .json({ Error: "Invalid Request: mode parameter is required" });
   }
-
-  const seasonFilter = seasonId
-    ? `AND pa.tournamentId BETWEEN 
+  const seasonFilter =
+    typeof seasonId == "number"
+      ? `AND tournamentId BETWEEN 
        (SELECT ${
-         mode === "doubles"
-           ? "startDoublesId, endDoublesId"
-           : "startSinglesId, endSinglesId"
-       } 
-        FROM season_map WHERE id = ${seasonId})`
-    : "";
+         mode === "doubles" ? "startDoublesId" : "startSinglesId"
+       } FROM season_map WHERE id = ${seasonId})
+       AND 
+       (SELECT ${
+         mode === "doubles" ? "endDoublesId" : "endSinglesId"
+       } FROM season_map WHERE id = ${seasonId})`
+      : "";
 
   const sql = `
     SELECT 
@@ -908,8 +913,9 @@ app.get("/api/player-actions-stats-averages", (req, res) => {
       .json({ Error: "Invalid Request: mode parameter is required" });
   }
 
-  const seasonFilter = seasonId
-    ? `AND pa.tournamentId BETWEEN 
+  const seasonFilter =
+    typeof seasonId == "number"
+      ? `AND pa.tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
        } FROM season_map WHERE id = ${seasonId})
@@ -917,7 +923,7 @@ app.get("/api/player-actions-stats-averages", (req, res) => {
        (SELECT ${
          mode === "doubles" ? "endDoublesId" : "endSinglesId"
        } FROM season_map WHERE id = ${seasonId})`
-    : "";
+      : "";
 
   const sql = `
     SELECT 
@@ -974,8 +980,9 @@ app.get("/api/player-actions-stats-average-tournaments", (req, res) => {
       .json({ Error: "Invalid Request: mode parameter is required" });
   }
 
-  const seasonFilter = seasonId
-    ? `AND pa.tournamentId BETWEEN 
+  const seasonFilter =
+    typeof seasonId == "number"
+      ? `AND pa.tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
        } FROM season_map WHERE id = ${seasonId})
@@ -983,7 +990,7 @@ app.get("/api/player-actions-stats-average-tournaments", (req, res) => {
        (SELECT ${
          mode === "doubles" ? "endDoublesId" : "endSinglesId"
        } FROM season_map WHERE id = ${seasonId})`
-    : "";
+      : "";
 
   const sql = `
     SELECT 
@@ -1508,6 +1515,27 @@ app.post("/api/addSeason/", (req, res) => {
         }
       }
     );
+  });
+});
+
+app.get("/api/getSeasons", (_, res) => {
+  const sql = `SELECT id, seasonName FROM season_map`;
+
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      // Handle the error
+      res.status(500).send({ error: err.message });
+      return;
+    }
+
+    // Create an object with season names and their IDs
+    const seasons = rows.reduce((acc: any, row: any) => {
+      acc[row.id] = row.seasonName;
+      return acc;
+    }, {});
+
+    // Send the response
+    res.status(200).json(seasons);
   });
 });
 

@@ -21,6 +21,7 @@ import {
   Heading,
   Radio,
   RadioGroup,
+  Select,
   SimpleGrid,
   Stack,
   Text,
@@ -92,17 +93,50 @@ const ActionsPage = () => {
     "#39FF14", // Neon Green
   ];
 
+  const [seasons, setSeasons] = useState([]);
+  const [selectedSeason, setSelectedSeason] = useState<any>();
+
+  useEffect(() => {
+    // Fetch the list of seasons
+    axios
+      .get(`http://${apiUrl}/getSeasons`)
+      .then((response) => {
+        setSeasons(response.data);
+      })
+      .catch((error) => console.error("Error fetching seasons:", error));
+  }, []);
+
   useEffect(() => {
     Promise.all([
-      axios.get(`http://${apiUrl}/player-actions-stats?mode=singles`),
-      axios.get(`http://${apiUrl}/player-actions-stats?mode=doubles`),
-      axios.get(`http://${apiUrl}/player-actions-stats-averages?mode=singles`),
-      axios.get(`http://${apiUrl}/player-actions-stats-averages?mode=doubles`),
       axios.get(
-        `http://${apiUrl}/player-actions-stats-average-tournaments?mode=singles`
+        `http://${apiUrl}/player-actions-stats?mode=singles&seasonId=${
+          selectedSeason ?? null
+        }`
       ),
       axios.get(
-        `http://${apiUrl}/player-actions-stats-average-tournaments?mode=doubles`
+        `http://${apiUrl}/player-actions-stats?mode=doubles&seasonId=${
+          selectedSeason ?? null
+        }`
+      ),
+      axios.get(
+        `http://${apiUrl}/player-actions-stats-averages?mode=singles&seasonId=${
+          selectedSeason ?? null
+        }`
+      ),
+      axios.get(
+        `http://${apiUrl}/player-actions-stats-averages?mode=doubles&seasonId=${
+          selectedSeason ?? null
+        }`
+      ),
+      axios.get(
+        `http://${apiUrl}/player-actions-stats-average-tournaments?mode=singles&seasonId=${
+          selectedSeason ?? null
+        }`
+      ),
+      axios.get(
+        `http://${apiUrl}/player-actions-stats-average-tournaments?mode=doubles&seasonId=${
+          selectedSeason ?? null
+        }`
       ),
     ]).then((results) => {
       setDataSingles(formatData(results[0].data));
@@ -112,7 +146,7 @@ const ActionsPage = () => {
       setDataSinglesAT(formatData(results[4].data));
       setDataDoublesAT(formatData(results[5].data));
     });
-  }, []);
+  }, [selectedSeason]);
 
   const router = useRouter();
 
@@ -126,6 +160,18 @@ const ActionsPage = () => {
             <VStack>
               <VStack>
                 <Heading p={4}>Action Graphs</Heading>
+                <Select
+                  placeholder="Select Season"
+                  onChange={(e) => setSelectedSeason(e.target.value)}
+                >
+                  {seasons
+                    ? Object.keys(seasons).map((season: any) => (
+                        <option key={season} value={season}>
+                          {seasons[season]}
+                        </option>
+                      ))
+                    : null}
+                </Select>
                 <RadioGroup
                   defaultValue="0"
                   onChange={(value) => {
