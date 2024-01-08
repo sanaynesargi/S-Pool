@@ -72,6 +72,14 @@ db.serialize(() => {
     startDoublesId INTEGER NOT NULL,
     endDoublesId INTEGER NOT NULL
   );`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS season_games (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    seasonId INTEGER NOT NULL,
+    playerName TEXT NOT NULL,
+    gamesPlayed INTEGER NOT NULL,
+    mode TEXT NOT NULL
+  );`);
 });
 
 dbFantasy.serialize(() => {
@@ -253,7 +261,7 @@ async function getNextTournamentId(
 const insertMatchups = async (matchups: Matchup[], mode: string) => {
   const insertStatement = `INSERT INTO player_matchups (player1, player2, winner, ballsWon, overtime, mode, tournamentId) VALUES (?, ?, ?, ?, ?, ?, ?);`;
 
-  const t = await getNextTournamentId("player_actions", mode);
+  const t = (await getNextTournamentId("player_actions", mode)) - 1;
 
   matchups.forEach((matchup) => {
     db.run(
@@ -275,6 +283,47 @@ const insertMatchups = async (matchups: Matchup[], mode: string) => {
     );
   });
 };
+
+function insertSeasonGamesPlayed(seasonId: any, gameData: any, mode: any) {
+  for (const playerName of Object.keys(gameData)) {
+    const gamesPlayed = gameData[playerName];
+    const query = `
+        INSERT INTO season_games (seasonId, playerName, gamesPlayed, mode)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(seasonId, playerName, mode) 
+        DO UPDATE SET gamesPlayed = gamesPlayed + excluded.gamesPlayed;
+    `;
+
+    db.run(query, [seasonId, playerName, gamesPlayed, mode], function (err) {
+      if (err) {
+        return console.error(err.message);
+      }
+    });
+  }
+}
+
+function findSeasonIdByTournament(tournamentId: any, mode: any) {
+  return new Promise((resolve, reject) => {
+    let column = mode === "singles" ? "startSinglesId" : "startDoublesId";
+    let endColumn = mode === "singles" ? "endSinglesId" : "endDoublesId";
+
+    const query = `
+            SELECT id AS seasonId
+            FROM season_map
+            WHERE ${column} <= ? AND ${endColumn} >= ?;
+        `;
+
+    db.get(query, [tournamentId, tournamentId], (err, row: any) => {
+      if (err) {
+        reject(err.message);
+      } else if (row) {
+        resolve(row.seasonId);
+      } else {
+        reject("No matching season found for the tournament.");
+      }
+    });
+  });
+}
 
 interface PlayerAction {
   playerName: string;
@@ -405,12 +454,22 @@ const endGame = async (actions: any) => {
       return;
     }
 
+    const tid = await getNextTournamentId("player_actions", actions.mode)!;
+    const currSeasonId = await findSeasonIdByTournament(tid, actions.mode!);
+
     await addPlayerActions(actions.playerActionCounts!, actions.mode!); // tid
     const playerNames = Object.keys(actions.playerActionCounts!);
     await incrementGamesPlayed(playerNames, actions.mode!);
     await incrementMiniGamesPlayed(actions.playerGameCounts!, actions.mode!);
     await addPlayerStandings(actions.standings!, actions.mode!);
     insertMatchups(actions.matches!, actions.mode!); // tid
+
+    insertSeasonGamesPlayed(
+      currSeasonId,
+      actions.playerGameCounts!,
+      actions.mode!
+    );
+
     console.log("Game Ended!");
   } catch (error) {
     console.error("Error ending game:", error);
@@ -577,13 +636,13 @@ app.get("/api/average-points-per-game", (req, res) => {
   }
 
   const seasonFilter =
-    typeof seasonId == "number"
+    seasonId != ""
       ? `JOIN (SELECT ${
           mode === "doubles"
             ? "startDoublesId, endDoublesId"
             : "startSinglesId, endSinglesId"
-        } 
-         FROM season_map WHERE id = ${seasonId}) sm 
+        }
+         FROM season_map WHERE id = ${seasonId}) sm
      ON a.tournamentId BETWEEN sm.${
        mode === "doubles"
          ? "startDoublesId AND sm.endDoublesId"
@@ -592,9 +651,10 @@ app.get("/api/average-points-per-game", (req, res) => {
       : "";
 
   const sql = `
-    SELECT a.playerName, 
-           IFNULL(SUM(a.actionValue * a.actionCount), 0) as totalPoints, 
-           IFNULL(b.gamesPlayed, 0) as gamesPlayed
+    SELECT a.playerName,
+           IFNULL(SUM(a.actionValue * a.actionCount), 0) as totalPoints,
+           IFNULL(b.gamesPlayed, 0) as gamesPlayed,
+           COUNT(DISTINCT(a.tournamentId)) as tid
     FROM player_actions a
     LEFT JOIN player_games b ON a.playerName = b.playerName AND b.mode = a.mode
     ${seasonFilter}
@@ -609,7 +669,7 @@ app.get("/api/average-points-per-game", (req, res) => {
       const averagePointsPerGame = rows.reduce((acc: any, row: any) => {
         acc[row.playerName] =
           row.gamesPlayed > 0
-            ? (row.totalPoints / row.gamesPlayed).toFixed(2)
+            ? (row.totalPoints / (row.tid ?? row.gamesPlayed)).toFixed(2)
             : "0.00";
         return acc;
       }, {});
@@ -618,7 +678,7 @@ app.get("/api/average-points-per-game", (req, res) => {
   });
 });
 
-app.get("/api/average-points-per-tournament-game", (req, res) => {
+app.get("/api/average-points-per-tournament-game", async (req, res) => {
   const { mode, seasonId } = req.query;
 
   if (!mode) {
@@ -628,7 +688,7 @@ app.get("/api/average-points-per-tournament-game", (req, res) => {
   }
 
   const seasonFilter =
-    typeof seasonId == "number"
+    seasonId != ""
       ? `JOIN (SELECT ${
           mode === "doubles"
             ? "startDoublesId, endDoublesId"
@@ -642,12 +702,16 @@ app.get("/api/average-points-per-tournament-game", (req, res) => {
      }`
       : "";
 
+  const addedJoin = `LEFT JOIN season_games sg ON ptg.playerName = sg.playerName AND ptg.mode = sg.mode AND sg.seasonId = ${seasonId}`;
+
   const sql = `
-    SELECT ptg.playerName, 
-           IFNULL(SUM(pa.actionValue * pa.actionCount), 0) as totalPoints, 
+    SELECT ptg.playerName,
+           IFNULL(SUM(pa.actionValue * pa.actionCount), 0) as totalPoints,
            IFNULL(ptg.gamesPlayed, 0) as gamesPlayed
+           ${seasonId != "" ? ",sg.gamesPlayed as tid" : ""}
     FROM player_tournament_games ptg
     LEFT JOIN player_actions pa ON ptg.playerName = pa.playerName AND ptg.mode = pa.mode
+    ${seasonId != "" ? addedJoin : ""}
     ${seasonFilter}
     WHERE ptg.mode = '${mode}'
     GROUP BY ptg.playerName
@@ -659,9 +723,10 @@ app.get("/api/average-points-per-tournament-game", (req, res) => {
     } else {
       const averagePointsPerGame = rows.reduce((acc: any, row: any) => {
         acc[row.playerName] =
-          row.gamesPlayed > 0
-            ? (row.totalPoints / row.gamesPlayed).toFixed(2)
-            : "0.00"; // Changed 0 to "0.00" to maintain consistency in the type of value returned
+          row.tid > 0 || row.gamesPlayed > 0
+            ? (row.totalPoints / (row.tid ?? row.gamesPlayed)).toFixed(2)
+            : "0.00";
+
         return acc;
       }, {});
       res.status(200).json(averagePointsPerGame);
@@ -683,8 +748,6 @@ app.get("/api/average-standings-per-game", (req, res) => {
     FROM player_standings WHERE mode = '${mode}'
     GROUP BY playerName;
   `;
-
-  console.log(sql);
 
   db.all(sql, [], (err, rows: any) => {
     if (err) {
@@ -741,7 +804,7 @@ app.get("/api/player-ppt", (req, res) => {
   }
 
   const seasonFilter =
-    typeof seasonId == "number"
+    seasonId != ""
       ? `AND tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
@@ -771,7 +834,6 @@ app.get("/api/player-ppt", (req, res) => {
       ORDER BY 
         averageValuePerAction DESC;
   `;
-  console.log(sql);
 
   db.all(sql, [], (err, rows: any) => {
     if (err) {
@@ -799,7 +861,7 @@ app.get("/api/player-tt", (req, res) => {
   }
 
   const seasonFilter =
-    typeof seasonId == "number"
+    seasonId != ""
       ? `AND tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
@@ -854,7 +916,7 @@ app.get("/api/player-actions-stats", (req, res) => {
       .json({ Error: "Invalid Request: mode parameter is required" });
   }
   const seasonFilter =
-    typeof seasonId == "number"
+    seasonId != ""
       ? `AND tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
@@ -914,7 +976,7 @@ app.get("/api/player-actions-stats-averages", (req, res) => {
   }
 
   const seasonFilter =
-    typeof seasonId == "number"
+    seasonId != ""
       ? `AND pa.tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
@@ -981,7 +1043,7 @@ app.get("/api/player-actions-stats-average-tournaments", (req, res) => {
   }
 
   const seasonFilter =
-    typeof seasonId == "number"
+    seasonId != ""
       ? `AND pa.tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
@@ -1375,10 +1437,27 @@ app.get("/api/tournamentData/", (req, res) => {
 });
 
 app.get("/api/tournamentBestWorst/", (req, res) => {
-  const mode = req.query.mode;
+  const { mode, seasonId } = req.query;
+
+  const seasonFilter =
+    seasonId != ""
+      ? `JOIN (SELECT ${
+          mode === "doubles"
+            ? "startDoublesId, endDoublesId"
+            : "startSinglesId, endSinglesId"
+        } 
+         FROM season_map WHERE id = ${seasonId}) sm 
+     ON tournamentId BETWEEN sm.${
+       mode === "doubles"
+         ? "startDoublesId AND sm.endDoublesId"
+         : "startSinglesId AND sm.endSinglesId"
+     }`
+      : "";
 
   db.all(
-    "SELECT * FROM player_actions WHERE mode = ?",
+    `SELECT pa.* FROM player_actions pa 
+   ${seasonFilter}
+   WHERE pa.mode = ?`,
     [mode],
     (err, actions) => {
       if (err) {

@@ -247,7 +247,16 @@ const PlayerList = () => {
             <Heading size="md">Simple Stats</Heading>
             <Select
               placeholder="Select Season"
-              onChange={(e) => setSelectedSeason(e.target.value)}
+              onChange={(e) => {
+                setSelectedSeason(e.target.value);
+                forceUpdate();
+                forceUpdate();
+                if (mode) {
+                  setPlayers(playersS);
+                } else {
+                  setPlayers(playersD);
+                }
+              }}
               maxW="md"
             >
               {Object.entries(seasons).map(([id, name]) => (
@@ -257,8 +266,22 @@ const PlayerList = () => {
               ))}
             </Select>
           </HStack>
-          <Button onClick={() => setPlayers(playersS)}>Singles</Button>
-          <Button onClick={() => setPlayers(playersD)}>Doubles</Button>
+          <Button
+            onClick={() => {
+              setPlayers(playersS);
+              setMode(true);
+            }}
+          >
+            Singles
+          </Button>
+          <Button
+            onClick={() => {
+              setMode(false);
+              setPlayers(playersD);
+            }}
+          >
+            Doubles
+          </Button>
         </Flex>
         <Box w="full" bg="gray.800" borderRadius="lg">
           {isLoading ? null : (
