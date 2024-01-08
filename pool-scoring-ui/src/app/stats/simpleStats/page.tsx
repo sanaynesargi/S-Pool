@@ -249,13 +249,6 @@ const PlayerList = () => {
               placeholder="Select Season"
               onChange={(e) => {
                 setSelectedSeason(e.target.value);
-                forceUpdate();
-                forceUpdate();
-                if (mode) {
-                  setPlayers(playersS);
-                } else {
-                  setPlayers(playersD);
-                }
               }}
               maxW="md"
             >
