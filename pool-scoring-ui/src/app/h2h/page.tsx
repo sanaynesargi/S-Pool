@@ -58,30 +58,32 @@ const MatchupLookup = () => {
 
   useEffect(() => {
     const fetchPlayerRanks = async () => {
+      const seasonId = "";
+
       try {
         const pointsPerGameRes = await axios.get(
           `http://${apiUrl}/average-points-per-game`,
-          { params: { mode } }
+          { params: { mode, seasonId } }
         );
         const pointsPerTournamentRes = await axios.get(
           `http://${apiUrl}/average-points-per-tournament-game`,
-          { params: { mode } }
+          { params: { mode, seasonId } }
         );
 
         const totalTournamentPlayedRes = await axios.get(
           `http://${apiUrl}/total-tournaments-played`,
-          { params: { mode } }
+          { params: { mode, seasonId } }
         );
 
         const totalGamesRes = await axios.get(
           `http://${apiUrl}/total-games-played`,
-          { params: { mode } }
+          { params: { mode, seasonId } }
         );
 
         const pointsPeStrokeRes = await axios.get(
           `http://${apiUrl}/player-ppt`,
           {
-            params: { mode },
+            params: { mode, seasonId },
           }
         );
 
