@@ -987,6 +987,8 @@ app.get("/api/player-actions-stats-averages", (req, res) => {
        } FROM season_map WHERE id = ${seasonId})`
       : "";
 
+  const addedJoin = `LEFT JOIN season_games sg ON pa.playerName = sg.playerName AND pa.mode = sg.mode AND sg.seasonId = ${seasonId}`;
+
   const sql = `
     SELECT 
       pa.playerName, 
@@ -994,10 +996,12 @@ app.get("/api/player-actions-stats-averages", (req, res) => {
       SUM(pa.actionCount) AS actionCount, 
       SUM(pa.actionValue * pa.actionCount) AS actionValue,
       pg.gamesPlayed
+      ${seasonId != "" ? ",sg.gamesPlayed as tid" : ""}
     FROM 
       player_actions pa
     JOIN 
       player_tournament_games pg ON pa.playerName = pg.playerName AND pa.mode = pg.mode
+    ${seasonId != "" ? addedJoin : ""}
     WHERE 
       pa.mode = '${mode}'
       ${seasonFilter}
@@ -1022,9 +1026,11 @@ app.get("/api/player-actions-stats-averages", (req, res) => {
           gamesPlayed: entry.gamesPlayed,
           count: entry.actionCount,
 
-          averageActionCount: entry.actionCount / entry.gamesPlayed,
+          averageActionCount:
+            entry.actionCount / (entry.tid ?? entry.gamesPlayed),
           averageActionValue:
-            (entry.actionCount / entry.gamesPlayed) * entry.actionValue,
+            (entry.actionCount / (entry.tid ?? entry.gamesPlayed)) *
+            entry.actionValue,
         });
       }
 
@@ -1060,7 +1066,8 @@ app.get("/api/player-actions-stats-average-tournaments", (req, res) => {
       pa.actionType,
       SUM(pa.actionCount) AS actionCount, 
       SUM(pa.actionValue * pa.actionCount) AS actionValue,
-      pg.gamesPlayed
+      pg.gamesPlayed,
+      COUNT(DISTINCT(pa.tournamentId)) as tid
     FROM 
       player_actions pa
     JOIN 
@@ -1089,9 +1096,11 @@ app.get("/api/player-actions-stats-average-tournaments", (req, res) => {
           gamesPlayed: entry.gamesPlayed,
           count: entry.actionCount,
 
-          averageActionCount: entry.actionCount / entry.gamesPlayed,
+          averageActionCount:
+            entry.actionCount / (entry.tid ?? entry.gamesPlayed),
           averageActionValue:
-            (entry.actionCount / entry.gamesPlayed) * entry.actionValue,
+            (entry.actionCount / (entry.tid ?? entry.gamesPlayed)) *
+            entry.actionValue,
         });
       }
       res.status(200).json(stats);

@@ -33,6 +33,11 @@ import router, { useRouter } from "next/navigation";
 
 const formatData = (data: any) => {
   const names = Object.keys(data);
+
+  if (names.length == 0) {
+    return {};
+  }
+
   const statBlob = data[names[0]];
   let statNames = [];
 
@@ -110,32 +115,32 @@ const ActionsPage = () => {
     Promise.all([
       axios.get(
         `http://${apiUrl}/player-actions-stats?mode=singles&seasonId=${
-          selectedSeason ?? null
+          selectedSeason ?? ""
         }`
       ),
       axios.get(
         `http://${apiUrl}/player-actions-stats?mode=doubles&seasonId=${
-          selectedSeason ?? null
+          selectedSeason ?? ""
         }`
       ),
       axios.get(
         `http://${apiUrl}/player-actions-stats-averages?mode=singles&seasonId=${
-          selectedSeason ?? null
+          selectedSeason ?? ""
         }`
       ),
       axios.get(
         `http://${apiUrl}/player-actions-stats-averages?mode=doubles&seasonId=${
-          selectedSeason ?? null
+          selectedSeason ?? ""
         }`
       ),
       axios.get(
         `http://${apiUrl}/player-actions-stats-average-tournaments?mode=singles&seasonId=${
-          selectedSeason ?? null
+          selectedSeason ?? ""
         }`
       ),
       axios.get(
         `http://${apiUrl}/player-actions-stats-average-tournaments?mode=doubles&seasonId=${
-          selectedSeason ?? null
+          selectedSeason ?? ""
         }`
       ),
     ]).then((results) => {

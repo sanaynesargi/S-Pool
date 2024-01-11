@@ -117,29 +117,29 @@ const RankingsPage = () => {
     const fetchData = async () => {
       const gamesResS = await axios.get(
         `http://${apiUrl}/average-points-per-tournament-game`,
-        { params: { mode: "singles" } }
+        { params: { mode: "singles", seasonId: "" } }
       );
 
       const gamesResD = await axios.get(
         `http://${apiUrl}/average-points-per-tournament-game`,
-        { params: { mode: "doubles" } }
+        { params: { mode: "doubles", seasonId: "" } }
       );
 
       const tournamentsResS = await axios.get(
         `http://${apiUrl}/average-points-per-game`,
-        { params: { mode: "singles" } }
+        { params: { mode: "singles", seasonId: "" } }
       );
 
       const tournamentsResD = await axios.get(
         `http://${apiUrl}/average-points-per-game`,
-        { params: { mode: "doubles" } }
+        { params: { mode: "doubles", seasonId: "" } }
       );
 
       const pptSingles = await axios.get(
-        `http://${apiUrl}/player-ppt?mode=singles`
+        `http://${apiUrl}/player-ppt?mode=singles&seasonId=`
       );
       const pptDoubles = await axios.get(
-        `http://${apiUrl}/player-ppt?mode=doubles`
+        `http://${apiUrl}/player-ppt?mode=doubles&seasonId=`
       );
 
       // Sort the data
