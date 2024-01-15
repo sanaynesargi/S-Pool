@@ -41,6 +41,8 @@ const Home: React.FC = () => {
     setStandings(s);
   };
 
+  const errorToast = useToast();
+
   const sendData = async () => {
     clearNameGridStateStorage();
 
@@ -53,24 +55,39 @@ const Home: React.FC = () => {
 
       matches = JSON.parse(matches);
 
-      await axios.post(`http://${apiUrl}/end-game`, {
+      const obj = await axios.post(`http://${apiUrl}/end-game`, {
         playerActionCounts,
         mode: mode ? "singles" : "doubles",
         standings,
         playerGameCounts,
         matches,
       });
-      console.log("Game ended and actions saved successfully");
+
+      if (obj.status == 200) {
+        console.log("Game ended and actions saved successfully");
+        errorToast({
+          title: "Game Ended",
+          description: "Game Ended Successfully!",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
     } catch (error) {
       console.error("Error ending game:", error);
+      errorToast({
+        title: "Game Ended",
+        description: "Game End Error! " + error?.toString(),
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   };
 
   const startGame = () => {
     setIsGameStarted(true);
   };
-
-  const errorToast = useToast();
 
   return (
     <>
