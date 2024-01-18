@@ -111,6 +111,14 @@ const RankingsPage = () => {
   const [doublesTournamentData, setDoublesTournamentGameData] = useState([]);
   const [singlesStrokeData, setSinglesStrokeGameData] = useState([]);
   const [doublesStrokeData, setDoublesStrokeGameData] = useState([]);
+
+  const [RA, setRA] = useState([]);
+  const [RB, setRB] = useState([]);
+  const [RC, setRC] = useState([]);
+  const [RD, setRD] = useState([]);
+  const [RE, setRE] = useState([]);
+  const [RF, setRF] = useState([]);
+
   const [mode, setMode] = useState(true);
 
   useEffect(() => {
@@ -144,16 +152,26 @@ const RankingsPage = () => {
 
       // Sort the data
       const sortData = (data: any) => {
-        // Convert the object into an array of [key, value] pairs
+        //Convert the object into an array of [key, value] pairs
         let items = Object.entries(data).map(([name, number]) => ({
           name,
           number,
         }));
 
-        // Sort the array based on the float value of the number property
+        //Sort the array based on the float value of the number property
         items.sort(
           (a: any, b: any) => parseFloat(b.number) - parseFloat(a.number)
         );
+
+        return items;
+      };
+
+      const itemizeData = (data: any) => {
+        //Convert the object into an array of [key, value] pairs
+        let items = Object.entries(data).map(([name, number]) => ({
+          name,
+          number,
+        }));
 
         return items;
       };
@@ -164,6 +182,13 @@ const RankingsPage = () => {
       setDoublesTournamentGameData(sortData(tournamentsResD.data) as any);
       setSinglesStrokeGameData(sortData(pptSingles.data) as any);
       setDoublesStrokeGameData(sortData(pptDoubles.data) as any);
+
+      setRA(itemizeData(gamesResS.data) as any);
+      setRB(itemizeData(gamesResD.data) as any);
+      setRC(itemizeData(tournamentsResS.data) as any);
+      setRD(itemizeData(tournamentsResD.data) as any);
+      setRE(itemizeData(pptSingles.data) as any);
+      setRF(itemizeData(pptDoubles.data) as any);
     };
 
     fetchData();
@@ -240,17 +265,11 @@ const RankingsPage = () => {
               <HStack justifyContent="space-around" w="100%">
                 <VStack>
                   <Heading size="md">Singles</Heading>
-                  <ScatterPlotComponent
-                    dictX={singlesGameData}
-                    dictY={singlesTournamentData}
-                  />
+                  <ScatterPlotComponent dictX={RA} dictY={RC} />
                 </VStack>
                 <VStack>
                   <Heading size="md">Doubles</Heading>
-                  <ScatterPlotComponent
-                    dictX={doublesGameData}
-                    dictY={doublesTournamentData}
-                  />
+                  <ScatterPlotComponent dictX={RB} dictY={RD} />
                 </VStack>
               </HStack>
             ) : null}
