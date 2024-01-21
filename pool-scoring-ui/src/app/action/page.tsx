@@ -44,8 +44,6 @@ const Home: React.FC = () => {
   const errorToast = useToast();
 
   const sendData = async () => {
-    clearNameGridStateStorage();
-
     try {
       let matches = localStorage.getItem("matches");
 
@@ -73,6 +71,7 @@ const Home: React.FC = () => {
           isClosable: true,
         });
       }
+      clearNameGridStateStorage();
     } catch (error) {
       console.error("Error ending game:", error);
       errorToast({
@@ -107,7 +106,6 @@ const Home: React.FC = () => {
             isGameStarted={isGameStarted}
             onEndGame={() => {
               for (let player of players) {
-                console.log(player);
                 if (standings[player] == 0) {
                   errorToast({
                     title: "Error Ending Game",

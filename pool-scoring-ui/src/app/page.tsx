@@ -34,7 +34,7 @@ const HomePage: React.FC = () => {
     >
       <Container centerContent>
         <Heading mb={6} size="2xl" color="teal.500">
-          S-Pool v.1.4.8
+          S-Pool v.1.5.0
         </Heading>
 
         <HStack spacing={8}>

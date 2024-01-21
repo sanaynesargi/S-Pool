@@ -1,5 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { Box, Flex, Text, Button } from "@chakra-ui/react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Box,
+  Flex,
+  Text,
+  Button,
+  useDisclosure,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
+} from "@chakra-ui/react";
 import AddPlayerModal from "./AddPlayerModal";
 import { useRouter } from "next/navigation";
 
@@ -69,6 +81,9 @@ const Navbar: React.FC<NavBarProps> = ({
   const handleEndGame = async () => {
     await onEndGame();
   };
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = useRef();
 
   return (
     <Flex
@@ -151,12 +166,53 @@ const Navbar: React.FC<NavBarProps> = ({
           color="#FFF"
           _hover={{ bg: "#ED8936", color: "#FFF" }}
           fontSize="sm"
-          onClick={handleEndGame}
+          onClick={() => {
+            onOpen();
+            // handleEndGame()
+          }}
           isDisabled={!isGameStarted}
           boxShadow="0 4px 6px rgba(0, 0, 0, 0.1)"
         >
           End Game
         </Button>
+        <AlertDialog
+          isOpen={isOpen}
+          leastDestructiveRef={cancelRef as any}
+          onClose={onClose}
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                Submit Tournament Results
+              </AlertDialogHeader>
+
+              <AlertDialogBody>
+                <Text fontWeight="semibold" fontSize="xl" color="gray.500">
+                  Make Sure The Mode is Right:
+                </Text>
+                <Text fontWeight="semibold" fontSize="xl">
+                  Mode: {mode ? "Singles" : "Doubles"}
+                </Text>
+              </AlertDialogBody>
+
+              <AlertDialogFooter>
+                <Button ref={cancelRef as any} onClick={onClose}>
+                  Go Back
+                </Button>
+                <Button
+                  colorScheme="green"
+                  onClick={() => {
+                    handleEndGame();
+                    onClose();
+                  }}
+                  ml={3}
+                >
+                  Send
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
       </Flex>
 
       <AddPlayerModal
