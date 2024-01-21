@@ -453,7 +453,6 @@ const endGame = async (actions: any) => {
       console.log("No Data Passed!");
       return;
     }
-
     const tid = await getNextTournamentId("player_actions", actions.mode)!;
     const currSeasonId = await findSeasonIdByTournament(tid, actions.mode!);
 
