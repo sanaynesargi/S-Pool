@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import {
   Box,
   Button,
@@ -19,7 +19,9 @@ import {
   ModalCloseButton,
   List,
   ListItem,
+  IconButton,
 } from "@chakra-ui/react";
+import { DeleteIcon } from "@chakra-ui/icons";
 
 const MatchupForm = ({ players }: { players: string[] }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -69,6 +71,8 @@ const MatchupForm = ({ players }: { players: string[] }) => {
     alert(JSON.stringify(matches));
     onClose();
   };
+
+  const [, forceUpdate] = useReducer((x: any) => x + 1, 0);
 
   return (
     <VStack spacing={4}>
@@ -154,9 +158,21 @@ const MatchupForm = ({ players }: { players: string[] }) => {
               <VStack>
                 {matches.map((match: any, index: number) => (
                   <Box key={index} p={2} borderWidth="1px" borderRadius="md">
-                    <Text>
-                      {match.playerOne} vs {match.playerTwo}
-                    </Text>
+                    <HStack w="full">
+                      <Text>
+                        {match.playerOne} vs {match.playerTwo}
+                      </Text>
+                      <IconButton
+                        aria-label="delete match"
+                        icon={<DeleteIcon />}
+                        colorScheme="red"
+                        onClick={() => {
+                          matches.splice(index, 1);
+                          forceUpdate();
+                        }}
+                        ml="50px"
+                      />
+                    </HStack>
                     <Text>Winner: {match.winner}</Text>
                     <Text>Balls Won: {match.ballsWon}</Text>
                     <Text>OT: {match.isOT ? "Yes" : "No"}</Text>
