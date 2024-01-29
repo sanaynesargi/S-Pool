@@ -1286,29 +1286,49 @@ app.get("/api/matchups-p", (req, res) => {
     let lastFiveMatches: any[] = [];
     let overallStatsRow1 = { wins: 0, totalMatches: 0, ballsWon: 0 };
     let overallStatsRow2 = { wins: 0, totalMatches: 0, ballsWon: 0 };
+    console.log("\n\n\n\n\n\n");
 
     rows.forEach((row: any, index) => {
       const players1 = row.player1.split(";");
       const players2 = row.player2.split(";");
       const winners = row.winner.split(";");
+      const length = rows.length;
 
       if (
         (players1.includes(player1) && players2.includes(player2)) ||
         (players1.includes(player2) && players2.includes(player1))
       ) {
         totalMatches++;
+
         if (winners.includes(player1)) {
           player1Wins++;
           player1BallsWon += row.ballsWon;
+          overallStatsRow1.wins++;
+          overallStatsRow1.ballsWon += row.ballsWon;
         }
         if (winners.includes(player2)) {
           player2Wins++;
           player2BallsWon += row.ballsWon;
+          overallStatsRow2.wins++;
+          overallStatsRow2.ballsWon += row.ballsWon;
+        }
+        // Last five matches
+        if (index > length - 6 && index < length) {
+          lastFiveMatches.push({ winner: row.winner, ballsWon: row.ballsWon });
         }
 
-        // Accumulate overall stats
         overallStatsRow1.totalMatches++;
         overallStatsRow2.totalMatches++;
+      } else if (
+        (players1.includes(player1) && !players2.includes(player1)) ||
+        (players1.includes(player2) && !players2.includes(players2)) ||
+        (players2.includes(player1) && !players1.includes(players1)) ||
+        (players2.includes(player2) && !players1.includes(players2)) ||
+        (players1.includes(player1) && players1.includes(player1)) ||
+        (players2.includes(player2) && players2.includes(player1))
+      ) {
+        // Accumulate overall stats
+
         if (winners.includes(player1)) {
           overallStatsRow1.wins++;
           overallStatsRow1.ballsWon += row.ballsWon;
@@ -1318,9 +1338,11 @@ app.get("/api/matchups-p", (req, res) => {
           overallStatsRow2.ballsWon += row.ballsWon;
         }
 
-        // Last five matches
-        if (index < 5) {
-          lastFiveMatches.push({ winner: row.winner, ballsWon: row.ballsWon });
+        if (players1.includes(player1) || players2.includes(player1)) {
+          overallStatsRow1.totalMatches++;
+        }
+        if (players1.includes(player2) || players2.includes(player2)) {
+          overallStatsRow2.totalMatches++;
         }
       }
     });
@@ -1358,7 +1380,7 @@ app.get("/api/matchups-p", (req, res) => {
         player1AvgBallsWon,
         player2AvgBallsWon,
       },
-      lastFiveHeadToHead: lastFiveMatches,
+      lastFiveHeadToHead: lastFiveMatches.reverse(),
       overallStatsPlayer1: {
         totalMatches: overallStatsRow1.totalMatches,
         winPercentage: (
