@@ -482,6 +482,230 @@ const endGame = async (actions: any) => {
   // });
 };
 
+const getRecords = (mode: string, seasonId: any) => {
+  return new Promise((resolve, reject) => {
+    if (!mode) {
+      reject("Missing required parameter: mode");
+    }
+
+    let playerNamesQuery = `
+      SELECT DISTINCT player_name
+      FROM (
+        SELECT player1 AS player_name FROM player_matchups WHERE mode = ? 
+        UNION
+        SELECT player2 AS player_name FROM player_matchups WHERE mode = ?
+      )
+    `;
+
+    let queryParams = [mode, mode];
+
+    // Modify the query and parameters if seasonId is provided
+    if (seasonId != "") {
+      let d = `
+          SELECT player1 AS player_name FROM player_matchups pm
+          INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startDoublesId AND sm.endDoublesId
+          WHERE pm.mode = ? AND sm.id = ?
+          UNION
+          SELECT player2 AS player_name FROM player_matchups pm
+          INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startDoublesId AND sm.endDoublesId
+          WHERE pm.mode = ? AND sm.id = ?`;
+      let s = `
+          SELECT player1 AS player_name FROM player_matchups pm
+          INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startSinglesId AND sm.endSinglesId
+          WHERE pm.mode = ? AND sm.id = ?
+          UNION
+          SELECT player2 AS player_name FROM player_matchups pm
+          INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startSinglesId AND sm.endSinglesId
+          WHERE pm.mode = ? AND sm.id = ?`;
+
+      playerNamesQuery = `
+        SELECT DISTINCT player_name
+        FROM (
+          ${mode == "singles" ? s : d}
+        )
+      `;
+      queryParams = [mode, seasonId, mode, seasonId];
+    }
+
+    db.all(playerNamesQuery, queryParams, async (err, playerRows) => {
+      if (err) {
+        reject("Error occurred: " + err.message);
+      }
+
+      const playerStatsPromises = playerRows.map((playerRow: any) => {
+        return new Promise((resolve, reject) => {
+          const player = playerRow.player_name;
+          let playerMatchupsQuery = `
+            SELECT COUNT(*) AS totalMatches,
+                   SUM(CASE WHEN winner = ? THEN 1 ELSE 0 END) AS wins,
+                   SUM(CASE WHEN winner = ? THEN ballsWon ELSE 0 END) AS totalBallsWon
+            FROM player_matchups pm
+            INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startSinglesId AND sm.endSinglesId
+            WHERE (pm.player1 = ? OR pm.player2 = ?) AND pm.mode = ? ${
+              seasonId != "" ? "AND sm.id = ?" : ""
+            }
+          `;
+
+          let matchParams = [player, player, player, player, mode];
+
+          // Modify the query and parameters if mode is doubles
+          if (mode === "doubles") {
+            playerMatchupsQuery = `
+              SELECT COUNT(*) AS totalMatches,
+                     SUM(CASE WHEN winner = ? THEN 1 ELSE 0 END) AS wins,
+                     SUM(CASE WHEN winner = ? THEN ballsWon ELSE 0 END) AS totalBallsWon
+              FROM player_matchups pm
+              INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startDoublesId AND sm.endDoublesId
+              WHERE (pm.player1 = ? OR pm.player2 = ?) AND pm.mode = ? ${
+                seasonId != "" ? "AND sm.id = ?" : ""
+              }
+            `;
+            matchParams = [player, player, player, player, mode];
+          }
+
+          if (seasonId != "") {
+            matchParams.push(seasonId);
+          }
+
+          db.get(
+            playerMatchupsQuery,
+            matchParams,
+            (err, playerMatchupRow: any) => {
+              if (err) {
+                reject(err);
+              } else {
+                const totalMatches = playerMatchupRow.totalMatches || 0;
+                const wins = playerMatchupRow.wins || 0;
+                const totalBallsWon = playerMatchupRow.totalBallsWon || 0;
+                const winPercentage =
+                  totalMatches > 0
+                    ? ((wins / totalMatches) * 100).toFixed(2)
+                    : 0;
+                const avgBallsWon =
+                  wins > 0 ? (totalBallsWon / wins).toFixed(2) : 0;
+
+                resolve({
+                  player,
+                  totalMatches,
+                  wins,
+                  winPercentage,
+                  record: `${wins}-${totalMatches - wins}`,
+                  avgBallsWon,
+                });
+              }
+            }
+          );
+        });
+      });
+
+      Promise.all(playerStatsPromises)
+        .then((playerStats) => {
+          resolve(playerStats);
+        })
+        .catch((error) => {
+          reject("Error occurred: " + error.message);
+        });
+    });
+  });
+};
+
+const getRecordsP = (mode: string, seasonId: any) => {
+  return new Promise((resolve, reject) => {
+    let sql = `
+      SELECT 
+        player1, player2, winner, ballsWon
+      FROM player_matchups
+      WHERE mode = ?
+    `;
+
+    let params = [mode];
+
+    if (seasonId) {
+      sql = `
+        SELECT 
+          pm.player1, pm.player2, pm.winner, pm.ballsWon
+        FROM player_matchups pm
+        JOIN season_map sm ON pm.tournamentId >= sm.startDoublesId AND pm.tournamentId <= sm.endDoublesId
+        WHERE pm.mode = ? AND sm.id = ?
+      `;
+      params.push(seasonId);
+    }
+
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        reject("Error occurred: " + err.message);
+      }
+
+      let totalMatches = 0;
+      let playerStats: any[] = [];
+
+      // Initialize players' wins, ballsWon, etc.
+      const playerData: Record<string, any> = {};
+
+      rows.forEach((row: any) => {
+        const { player1, player2, winner, ballsWon } = row;
+
+        const players1 = player1.split(";");
+        const players2 = player2.split(";");
+        const winners = winner.split(";");
+
+        // Calculate statistics for each player
+        [...players1, ...players2].forEach((player) => {
+          if (!playerData[player]) {
+            playerData[player] = {
+              totalMatches: 0,
+              wins: 0,
+              ballsWon: 0,
+            };
+          }
+
+          playerData[player].totalMatches++;
+
+          if (winners.includes(player)) {
+            playerData[player].wins++;
+            playerData[player].ballsWon += ballsWon;
+          }
+        });
+
+        totalMatches++;
+      });
+
+      // Calculate win percentage and record for each player
+      Object.entries(playerData).forEach(([player, data]) => {
+        const { wins, totalMatches, ballsWon } = data;
+        const winPercentage =
+          totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(2) : 0;
+        const record = `${wins}-${totalMatches - wins}`;
+        const avgBallsWon = wins > 0 ? (ballsWon / wins).toFixed(2) : 0;
+
+        playerStats.push({
+          player,
+          totalMatches,
+          wins,
+          winPercentage,
+          record,
+          avgBallsWon,
+        });
+      });
+
+      resolve(playerStats);
+    });
+  });
+};
+
+const findPlayerIndex = (playerName: string, arr: any) => {
+  let i = 0;
+
+  for (const blob of arr) {
+    if (blob.player == playerName) {
+      return i;
+    }
+    i += 1;
+  }
+
+  return "null";
+};
+
 app.post("/api/end-game", async (req, res) => {
   try {
     const actions: PlayerAction[] = req.body;
@@ -593,38 +817,6 @@ app.get("/api/latest-tournament-points", (req, res) => {
   });
 });
 
-//   const query = req.query;
-
-//   if (!query.mode) {
-//     res.status(404).json({ Error: "Invalid Request" });
-//     return;
-//   }
-
-//   const sql = `
-//     SELECT a.playerName,
-//            IFNULL(SUM(a.actionValue * a.actionCount), 0) as totalPoints,
-//            IFNULL(b.gamesPlayed, 0) as gamesPlayed
-//     FROM player_actions a
-//     LEFT JOIN player_games b ON a.playerName = b.playerName
-//     WHERE a.mode = '${query.mode}' AND b.mode = '${query.mode}'
-//     GROUP BY a.playerName
-//   `;
-
-//   db.all(sql, [], (err, rows) => {
-//     if (err) {
-//       res.status(500).send(err.message);
-//     } else {
-//       const averagePointsPerGame = rows.reduce((acc: any, row: any) => {
-//         acc[row.playerName] =
-//           row.gamesPlayed > 0
-//             ? (row.totalPoints / row.gamesPlayed).toFixed(2)
-//             : 0;
-//         return acc;
-//       }, {});
-//       res.status(200).json(averagePointsPerGame);
-//     }
-//   });
-// });
 app.get("/api/average-points-per-game", (req, res) => {
   const { mode, seasonId } = req.query;
 
@@ -1107,6 +1299,397 @@ app.get("/api/player-actions-stats-average-tournaments", (req, res) => {
   });
 });
 
+app.get("/api/get-records", (req, res) => {
+  const { mode, seasonId } = req.query;
+
+  if (!mode) {
+    return res.status(400).send("Missing required parameter: mode");
+  }
+
+  let playerNamesQuery = `
+    SELECT DISTINCT player_name
+    FROM (
+      SELECT player1 AS player_name FROM player_matchups WHERE mode = ? 
+      UNION
+      SELECT player2 AS player_name FROM player_matchups WHERE mode = ?
+    )
+  `;
+
+  let queryParams = [mode, mode];
+
+  // Modify the query and parameters if seasonId is provided
+  if (seasonId != "") {
+    let d = `
+        SELECT player1 AS player_name FROM player_matchups pm
+        INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startDoublesId AND sm.endDoublesId
+        WHERE pm.mode = ? AND sm.id = ?
+        UNION
+        SELECT player2 AS player_name FROM player_matchups pm
+        INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startDoublesId AND sm.endDoublesId
+        WHERE pm.mode = ? AND sm.id = ?`;
+    let s = `
+        SELECT player1 AS player_name FROM player_matchups pm
+        INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startSinglesId AND sm.endSinglesId
+        WHERE pm.mode = ? AND sm.id = ?
+        UNION
+        SELECT player2 AS player_name FROM player_matchups pm
+        INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startSinglesId AND sm.endSinglesId
+        WHERE pm.mode = ? AND sm.id = ?`;
+
+    playerNamesQuery = `
+      SELECT DISTINCT player_name
+      FROM (
+        ${mode == "singles" ? s : d}
+      )
+    `;
+    queryParams = [mode, seasonId as string, mode, seasonId as string];
+  }
+
+  db.all(playerNamesQuery, queryParams, (err, playerRows) => {
+    if (err) {
+      return res.status(500).send("Error occurred: " + err.message);
+    }
+
+    const playerStatsPromises = playerRows.map((playerRow: any) => {
+      return new Promise((resolve, reject) => {
+        const player = playerRow.player_name;
+        let playerMatchupsQuery = `
+          SELECT COUNT(*) AS totalMatches,
+                 SUM(CASE WHEN winner = ? THEN 1 ELSE 0 END) AS wins
+          FROM player_matchups pm
+          INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startSinglesId AND sm.endSinglesId
+          WHERE (pm.player1 = ? OR pm.player2 = ?) AND pm.mode = ? ${
+            seasonId != "" ? "AND sm.id = ?" : ""
+          }
+        `;
+
+        let matchParams = [player, player, player, mode];
+
+        // Modify the query and parameters if mode is doubles
+        if (mode === "doubles") {
+          playerMatchupsQuery = `
+            SELECT COUNT(*) AS totalMatches,
+                   SUM(CASE WHEN winner = ? THEN 1 ELSE 0 END) AS wins
+            FROM player_matchups pm
+            INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startDoublesId AND sm.endDoublesId
+            WHERE (pm.player1 = ? OR pm.player2 = ?) AND pm.mode = ? ${
+              seasonId != "" ? "AND sm.id = ?" : ""
+            }
+          `;
+          matchParams = [player, player, player, mode];
+        }
+
+        if (seasonId != "") {
+          matchParams.push(seasonId);
+        }
+
+        db.get(
+          playerMatchupsQuery,
+          matchParams,
+          (err, playerMatchupRow: any) => {
+            if (err) {
+              reject(err);
+            } else {
+              const totalMatches = playerMatchupRow.totalMatches || 0;
+              const wins = playerMatchupRow.wins || 0;
+              const winPercentage =
+                totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(2) : 0;
+
+              resolve({
+                player,
+                totalMatches,
+                wins,
+                winPercentage,
+                record: `${wins}-${totalMatches - wins}`,
+              });
+            }
+          }
+        );
+      });
+    });
+
+    Promise.all(playerStatsPromises)
+      .then((playerStats) => {
+        res.json(playerStats);
+      })
+      .catch((error) => {
+        res.status(500).send("Error occurred: " + error.message);
+      });
+  });
+});
+
+app.get("/api/get-records-p", (req, res) => {
+  const { mode, seasonId } = req.query;
+
+  if (!mode) {
+    return res.status(400).send("Missing required parameter: mode");
+  }
+
+  let sql = `
+    SELECT 
+      player1, player2, winner, ballsWon
+    FROM player_matchups
+    WHERE mode = ?
+  `;
+
+  let params = [mode];
+
+  if (seasonId) {
+    sql = `
+      SELECT 
+        pm.player1, pm.player2, pm.winner, pm.ballsWon
+      FROM player_matchups pm
+      JOIN season_map sm ON pm.tournamentId >= sm.startDoublesId AND pm.tournamentId <= sm.endDoublesId
+      WHERE pm.mode = ? AND sm.id = ?
+    `;
+    params.push(seasonId);
+  }
+
+  db.all(sql, params, (err, rows) => {
+    if (err) {
+      return res.status(500).send("Error occurred: " + err.message);
+    }
+
+    let totalMatches = 0;
+    let playerStats: any[] = [];
+
+    // Initialize players' wins, ballsWon, etc.
+    const playerData: Record<string, any> = {};
+
+    rows.forEach((row: any) => {
+      const { player1, player2, winner, ballsWon } = row;
+
+      const players1 = player1.split(";");
+      const players2 = player2.split(";");
+      const winners = winner.split(";");
+
+      // Calculate statistics for each player
+      [...players1, ...players2].forEach((player) => {
+        if (!playerData[player]) {
+          playerData[player] = {
+            totalMatches: 0,
+            wins: 0,
+            ballsWon: 0,
+          };
+        }
+
+        playerData[player].totalMatches++;
+
+        if (winners.includes(player)) {
+          playerData[player].wins++;
+          playerData[player].ballsWon += ballsWon;
+        }
+      });
+
+      totalMatches++;
+    });
+
+    // Calculate win percentage and record for each player
+    Object.entries(playerData).forEach(([player, data]) => {
+      const { wins, totalMatches, ballsWon } = data;
+      const winPercentage =
+        totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(2) : 0;
+      const record = `${wins}-${totalMatches - wins}`;
+      const avgBallsWon = wins > 0 ? (ballsWon / wins).toFixed(2) : 0;
+
+      playerStats.push({
+        player,
+        totalMatches,
+        wins,
+        winPercentage,
+        record,
+        avgBallsWon,
+      });
+    });
+
+    res.json(playerStats);
+  });
+});
+
+app.get("/api/get-combined-records", async (req, res) => {
+  const { seasonId } = req.query;
+
+  const singles = await getRecords("singles", seasonId);
+  const doubles: any = await getRecordsP("doubles", seasonId);
+
+  let obj: any = singles;
+
+  for (const blob of doubles) {
+    let index = findPlayerIndex(blob.player, obj);
+
+    if (index == "null") {
+      continue;
+    }
+
+    obj[index].wins += blob.wins;
+    obj[index].totalMatches += blob.totalMatches;
+  }
+
+  let ret: any = [];
+
+  for (const blob of obj) {
+    let newBlob = blob;
+
+    newBlob.winPercentage = (
+      (newBlob.wins / newBlob.totalMatches) *
+      100
+    ).toFixed(2);
+
+    newBlob.record = `${newBlob.wins}-${newBlob.totalMatches - newBlob.wins}`;
+    newBlob.avgBallsWon = 0;
+
+    ret.push(newBlob);
+  }
+
+  res.send(ret);
+});
+
+app.get("/api/matchups-p", (req, res) => {
+  const { player1, player2, mode } = req.query;
+
+  if (!player1 || !player2 || !mode) {
+    return res
+      .status(400)
+      .send("Missing required parameters: player1, player2, and mode");
+  }
+
+  const sql = `
+    SELECT 
+      player1, player2, winner, ballsWon
+    FROM player_matchups
+    WHERE mode = ?
+  `;
+
+  db.all(sql, [mode], (err, rows) => {
+    if (err) {
+      return res.status(500).send("Error occurred: " + err.message);
+    }
+
+    let totalMatches = 0;
+    let player1Wins = 0;
+    let player2Wins = 0;
+    let player1BallsWon = 0;
+    let player2BallsWon = 0;
+    let lastFiveMatches: any[] = [];
+    let overallStatsRow1 = { wins: 0, totalMatches: 0, ballsWon: 0 };
+    let overallStatsRow2 = { wins: 0, totalMatches: 0, ballsWon: 0 };
+    console.log("\n\n\n\n\n\n");
+
+    rows.forEach((row: any, index) => {
+      const players1 = row.player1.split(";");
+      const players2 = row.player2.split(";");
+      const winners = row.winner.split(";");
+      const length = rows.length;
+
+      if (
+        (players1.includes(player1) && players2.includes(player2)) ||
+        (players1.includes(player2) && players2.includes(player1))
+      ) {
+        totalMatches++;
+
+        if (winners.includes(player1)) {
+          player1Wins++;
+          player1BallsWon += row.ballsWon;
+          overallStatsRow1.wins++;
+          overallStatsRow1.ballsWon += row.ballsWon;
+        }
+        if (winners.includes(player2)) {
+          player2Wins++;
+          player2BallsWon += row.ballsWon;
+          overallStatsRow2.wins++;
+          overallStatsRow2.ballsWon += row.ballsWon;
+        }
+        // Last five matches
+        if (index > length - 6 && index < length) {
+          lastFiveMatches.push({ winner: row.winner, ballsWon: row.ballsWon });
+        }
+
+        overallStatsRow1.totalMatches++;
+        overallStatsRow2.totalMatches++;
+      } else if (
+        (players1.includes(player1) && !players2.includes(player1)) ||
+        (players1.includes(player2) && !players2.includes(players2)) ||
+        (players2.includes(player1) && !players1.includes(players1)) ||
+        (players2.includes(player2) && !players1.includes(players2)) ||
+        (players1.includes(player1) && players1.includes(player1)) ||
+        (players2.includes(player2) && players2.includes(player1))
+      ) {
+        // Accumulate overall stats
+
+        if (winners.includes(player1)) {
+          overallStatsRow1.wins++;
+          overallStatsRow1.ballsWon += row.ballsWon;
+        }
+        if (winners.includes(player2)) {
+          overallStatsRow2.wins++;
+          overallStatsRow2.ballsWon += row.ballsWon;
+        }
+
+        if (players1.includes(player1) || players2.includes(player1)) {
+          overallStatsRow1.totalMatches++;
+        }
+        if (players1.includes(player2) || players2.includes(player2)) {
+          overallStatsRow2.totalMatches++;
+        }
+      }
+    });
+
+    // Calculate averages
+    const player1AvgBallsWon =
+      player1Wins > 0 ? (player1BallsWon / player1Wins).toFixed(2) : 0;
+    const player2AvgBallsWon =
+      player2Wins > 0 ? (player2BallsWon / player2Wins).toFixed(2) : 0;
+    const overallPlayer1AvgBallsWon =
+      overallStatsRow1.wins > 0
+        ? (overallStatsRow1.ballsWon / overallStatsRow1.wins).toFixed(2)
+        : 0;
+    const overallPlayer2AvgBallsWon =
+      overallStatsRow2.wins > 0
+        ? (overallStatsRow2.ballsWon / overallStatsRow2.wins).toFixed(2)
+        : 0;
+
+    const h2hRecord1 = `${player1Wins}-${totalMatches - player1Wins}`;
+    const h2hRecord2 = `${player2Wins}-${totalMatches - player2Wins}`;
+    const overallRecord1 = `${overallStatsRow1.wins}-${
+      overallStatsRow1.totalMatches - overallStatsRow1.wins
+    }`;
+    const overallRecord2 = `${overallStatsRow2.wins}-${
+      overallStatsRow2.totalMatches - overallStatsRow2.wins
+    }`;
+
+    res.json({
+      headToHeadAllTime: {
+        totalMatches,
+        player1Wins,
+        player2Wins,
+        player1Record: h2hRecord1,
+        player2Record: h2hRecord2,
+        player1AvgBallsWon,
+        player2AvgBallsWon,
+      },
+      lastFiveHeadToHead: lastFiveMatches.reverse(),
+      overallStatsPlayer1: {
+        totalMatches: overallStatsRow1.totalMatches,
+        winPercentage: (
+          (overallStatsRow1.wins / overallStatsRow1.totalMatches) *
+          100
+        ).toFixed(2),
+        avgBallsWon: overallPlayer1AvgBallsWon,
+        player1RecordOverall: overallRecord1,
+      },
+      overallStatsPlayer2: {
+        totalMatches: overallStatsRow2.totalMatches,
+        winPercentage: (
+          (overallStatsRow2.wins / overallStatsRow2.totalMatches) *
+          100
+        ).toFixed(2),
+        avgBallsWon: overallPlayer2AvgBallsWon,
+        player2RecordOverall: overallRecord2,
+      },
+    });
+  });
+});
+
 app.get("/api/matchups", (req, res) => {
   const { player1, player2, mode } = req.query as {
     player1: string;
@@ -1255,152 +1838,6 @@ app.get("/api/matchups", (req, res) => {
       });
     }
   );
-});
-
-app.get("/api/matchups-p", (req, res) => {
-  const { player1, player2, mode } = req.query;
-
-  if (!player1 || !player2 || !mode) {
-    return res
-      .status(400)
-      .send("Missing required parameters: player1, player2, and mode");
-  }
-
-  const sql = `
-    SELECT 
-      player1, player2, winner, ballsWon
-    FROM player_matchups
-    WHERE mode = ?
-  `;
-
-  db.all(sql, [mode], (err, rows) => {
-    if (err) {
-      return res.status(500).send("Error occurred: " + err.message);
-    }
-
-    let totalMatches = 0;
-    let player1Wins = 0;
-    let player2Wins = 0;
-    let player1BallsWon = 0;
-    let player2BallsWon = 0;
-    let lastFiveMatches: any[] = [];
-    let overallStatsRow1 = { wins: 0, totalMatches: 0, ballsWon: 0 };
-    let overallStatsRow2 = { wins: 0, totalMatches: 0, ballsWon: 0 };
-    console.log("\n\n\n\n\n\n");
-
-    rows.forEach((row: any, index) => {
-      const players1 = row.player1.split(";");
-      const players2 = row.player2.split(";");
-      const winners = row.winner.split(";");
-      const length = rows.length;
-
-      if (
-        (players1.includes(player1) && players2.includes(player2)) ||
-        (players1.includes(player2) && players2.includes(player1))
-      ) {
-        totalMatches++;
-
-        if (winners.includes(player1)) {
-          player1Wins++;
-          player1BallsWon += row.ballsWon;
-          overallStatsRow1.wins++;
-          overallStatsRow1.ballsWon += row.ballsWon;
-        }
-        if (winners.includes(player2)) {
-          player2Wins++;
-          player2BallsWon += row.ballsWon;
-          overallStatsRow2.wins++;
-          overallStatsRow2.ballsWon += row.ballsWon;
-        }
-        // Last five matches
-        if (index > length - 6 && index < length) {
-          lastFiveMatches.push({ winner: row.winner, ballsWon: row.ballsWon });
-        }
-
-        overallStatsRow1.totalMatches++;
-        overallStatsRow2.totalMatches++;
-      } else if (
-        (players1.includes(player1) && !players2.includes(player1)) ||
-        (players1.includes(player2) && !players2.includes(players2)) ||
-        (players2.includes(player1) && !players1.includes(players1)) ||
-        (players2.includes(player2) && !players1.includes(players2)) ||
-        (players1.includes(player1) && players1.includes(player1)) ||
-        (players2.includes(player2) && players2.includes(player1))
-      ) {
-        // Accumulate overall stats
-
-        if (winners.includes(player1)) {
-          overallStatsRow1.wins++;
-          overallStatsRow1.ballsWon += row.ballsWon;
-        }
-        if (winners.includes(player2)) {
-          overallStatsRow2.wins++;
-          overallStatsRow2.ballsWon += row.ballsWon;
-        }
-
-        if (players1.includes(player1) || players2.includes(player1)) {
-          overallStatsRow1.totalMatches++;
-        }
-        if (players1.includes(player2) || players2.includes(player2)) {
-          overallStatsRow2.totalMatches++;
-        }
-      }
-    });
-
-    // Calculate averages
-    const player1AvgBallsWon =
-      player1Wins > 0 ? (player1BallsWon / player1Wins).toFixed(2) : 0;
-    const player2AvgBallsWon =
-      player2Wins > 0 ? (player2BallsWon / player2Wins).toFixed(2) : 0;
-    const overallPlayer1AvgBallsWon =
-      overallStatsRow1.wins > 0
-        ? (overallStatsRow1.ballsWon / overallStatsRow1.wins).toFixed(2)
-        : 0;
-    const overallPlayer2AvgBallsWon =
-      overallStatsRow2.wins > 0
-        ? (overallStatsRow2.ballsWon / overallStatsRow2.wins).toFixed(2)
-        : 0;
-
-    const h2hRecord1 = `${player1Wins}-${totalMatches - player1Wins}`;
-    const h2hRecord2 = `${player2Wins}-${totalMatches - player2Wins}`;
-    const overallRecord1 = `${overallStatsRow1.wins}-${
-      overallStatsRow1.totalMatches - overallStatsRow1.wins
-    }`;
-    const overallRecord2 = `${overallStatsRow2.wins}-${
-      overallStatsRow2.totalMatches - overallStatsRow2.wins
-    }`;
-
-    res.json({
-      headToHeadAllTime: {
-        totalMatches,
-        player1Wins,
-        player2Wins,
-        player1Record: h2hRecord1,
-        player2Record: h2hRecord2,
-        player1AvgBallsWon,
-        player2AvgBallsWon,
-      },
-      lastFiveHeadToHead: lastFiveMatches.reverse(),
-      overallStatsPlayer1: {
-        totalMatches: overallStatsRow1.totalMatches,
-        winPercentage: (
-          (overallStatsRow1.wins / overallStatsRow1.totalMatches) *
-          100
-        ).toFixed(2),
-        avgBallsWon: overallPlayer1AvgBallsWon,
-        player1RecordOverall: overallRecord1,
-      },
-      overallStatsPlayer2: {
-        totalMatches: overallStatsRow2.totalMatches,
-        winPercentage: (
-          (overallStatsRow2.wins / overallStatsRow2.totalMatches) *
-          100
-        ).toFixed(2),
-        avgBallsWon: overallPlayer2AvgBallsWon,
-        player2RecordOverall: overallRecord2,
-      },
-    });
-  });
 });
 
 app.get("/api/tournamentData/", (req, res) => {
