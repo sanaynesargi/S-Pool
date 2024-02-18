@@ -13,18 +13,16 @@ import {
   ModalCloseButton,
   ModalContent,
   ModalFooter,
-  Text,
   ModalHeader,
   ModalOverlay,
-  Progress,
   Select,
+  Text,
   VStack,
-  Circle,
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useState, useReducer, useEffect } from "react";
-import { apiUrl } from "../../../../utils/utils";
+import { apiUrl } from "../utils/utils";
 
 const playerData = [
   { name: "Player 1", score: 0.82, trend: "up" },
@@ -177,36 +175,7 @@ function calculateMVP(player: any, WPS: any, WPD: any) {
   return MVP;
 }
 
-const DualProgressBar = ({ percentage1, percentage2 }: any) => {
-  return (
-    <Box
-      bg="gray.200"
-      height="24px"
-      width="300px" // Set the width to 300px
-      borderRadius="full"
-      position="relative"
-      overflow="hidden"
-    >
-      <Box
-        bg="green.400"
-        height="100%"
-        width={`${percentage1}%`}
-        position="relative"
-      ></Box>
-      <Box
-        bg="blue.400"
-        height="100%"
-        width={`${percentage2 - percentage1}%`}
-        position="absolute"
-        top="0"
-        left={`${percentage1}%`}
-        zIndex="0"
-      ></Box>
-    </Box>
-  );
-};
-
-const AccoladeTrackerPage = () => {
+const CondensedAccolates = () => {
   const [singlesGameData, setSinglesGameData] = useState([]);
   const [doublesGameData, setDoublesGameData] = useState([]);
   const [singlesTournamentData, setSinglesTournamentGameData] = useState([]);
@@ -222,7 +191,6 @@ const AccoladeTrackerPage = () => {
   const [winDoubles, setWinDoubles] = useState([]);
   const [seasons, setSeasons] = useState([]);
   const [selectedSeason, setSelectedSeason] = useState("");
-  const [seasonProgress, setSeasonProgress] = useState<any>({});
 
   useEffect(() => {
     // Fetch the list of seasons
@@ -230,6 +198,9 @@ const AccoladeTrackerPage = () => {
       try {
         const response = await axios.get(`http://${apiUrl}/getSeasons`);
         setSeasons(response.data);
+
+        const seasons = Object.keys(response.data);
+        setSelectedSeason(seasons[seasons.length - 1]);
       } catch (error) {
         console.error("Error fetching seasons:", error);
       }
@@ -287,12 +258,6 @@ const AccoladeTrackerPage = () => {
           selectedSeason ?? ""
         }`
       );
-
-      const seasonProgress = await axios.get(
-        `http://${apiUrl}/getSeasonProgress`
-      );
-
-      setSeasonProgress(seasonProgress.data);
 
       // Sort the data
       const sortData = (data: any) => {
@@ -414,6 +379,7 @@ const AccoladeTrackerPage = () => {
           onChange={(e) => {
             setSelectedSeason(e.target.value);
           }}
+          value={selectedSeason}
           maxW="md"
         >
           {Object.entries(seasons).map(([id, name]) => (
@@ -464,22 +430,6 @@ const AccoladeTrackerPage = () => {
                 </Box>
               ))}
             </VStack>
-
-            <VStack
-              spacing={4}
-              align="stretch"
-              pos="absolute"
-              left={10}
-              top={10}
-            >
-              {accoladeCategories.map(({ name, color }) => (
-                <Container key={name} bg={color} borderRadius="md" p={4}>
-                  <Text color="white" fontWeight="bold">
-                    {accoladeTexts[name]}
-                  </Text>
-                </Container>
-              ))}
-            </VStack>
           </HStack>
           <HStack>
             <VStack spacing={8}>
@@ -508,77 +458,6 @@ const AccoladeTrackerPage = () => {
                   <Text>{player.MVP.toFixed(3)}</Text>
                 </Box>
               ))}
-            </VStack>
-            <VStack
-              spacing={4}
-              align="stretch"
-              pos="absolute"
-              right={10}
-              top={10}
-            >
-              {MVPCategories.map(({ name, color }) => (
-                <Container key={name} bg={color} borderRadius="md" p={4}>
-                  <Text color="white" fontWeight="bold">
-                    {MVPTexts[name]}
-                  </Text>
-                </Container>
-              ))}
-            </VStack>
-
-            <VStack
-              spacing={4}
-              align="stretch"
-              pos="absolute"
-              top={350}
-              left={10}
-              bg="gray.700"
-              padding="15px"
-              borderRadius="lg"
-            >
-              <Heading fontSize="xl">Season Progress</Heading>
-              <VStack spacing={7}>
-                <Heading fontSize="lg">
-                  Singles:{" "}
-                  {(seasonProgress?.singlesCompletionPrevious * 100).toFixed(2)}
-                  %,{" "}
-                  {(seasonProgress?.singlesCompletionCurrent * 100).toFixed(2)}%
-                </Heading>
-                <DualProgressBar
-                  percentage1={seasonProgress?.singlesCompletionPrevious * 100}
-                  percentage2={seasonProgress?.singlesCompletionCurrent * 100}
-                />
-                <Heading fontSize="lg">
-                  Doubles{" "}
-                  {(seasonProgress?.doublesCompletionPrevious * 100).toFixed(2)}
-                  %,{" "}
-                  {(seasonProgress?.doublesCompletionCurrent * 100).toFixed(2)}%
-                </Heading>
-                <DualProgressBar
-                  percentage1={seasonProgress?.doublesCompletionPrevious * 100}
-                  percentage2={seasonProgress?.doublesCompletionCurrent * 100}
-                />
-
-                <VStack alignItems="start">
-                  <HStack>
-                    <Box
-                      w="30px"
-                      h="30px"
-                      bg="green.400"
-                      borderRadius="md"
-                    ></Box>
-                    <Text>Previous</Text>
-                  </HStack>
-                  <HStack>
-                    <Box
-                      w="30px"
-                      h="30px"
-                      bg="blue.400"
-                      borderRadius="md"
-                    ></Box>
-                    <Text>After Next</Text>
-                  </HStack>
-                </VStack>
-              </VStack>
             </VStack>
           </HStack>
         </HStack>
@@ -652,4 +531,4 @@ const AccoladeTrackerPage = () => {
   );
 };
 
-export default AccoladeTrackerPage;
+export default CondensedAccolates;

@@ -1,11 +1,12 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   AlertDescription,
   AlertIcon,
   AlertTitle,
   Box,
+  Center,
   HStack,
   Text,
   useToast,
@@ -15,6 +16,7 @@ import PlayerGrid, { PlayerActionCounts } from "../../../components/PlayerGrid";
 import axios from "axios";
 import MatchupsPage from "../../../components/MatchupCreator";
 import { apiUrl } from "../../../utils/utils";
+import SlideshowModal from "../../../components/SlideshowModal";
 
 const clearNameGridStateStorage = () => {
   localStorage.removeItem("nameGridState");
@@ -100,6 +102,11 @@ const Home: React.FC = () => {
         </Alert>
       ) : (
         <Box>
+          <SlideshowModal
+            mode={!mode ? "doubles" : "singles"}
+            players={players}
+            isGameStarted={isGameStarted}
+          />
           <Navbar
             onAddPlayers={addPlayers}
             setGameStarted={startGame}

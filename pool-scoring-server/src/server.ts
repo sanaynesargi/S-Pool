@@ -2,6 +2,11 @@ import cors from "cors";
 import express from "express";
 import sqlite3 from "sqlite3";
 import { v4 as uuidv4 } from "uuid";
+import {
+  getAveragePointsPerGame,
+  getAveragePointsPerStroke,
+  getAveragePointsPerTournament,
+} from "./utils";
 
 const app = express();
 const port = 8000;
@@ -2082,6 +2087,216 @@ app.get("/api/getSeasons", (_, res) => {
 
     // Send the response
     res.status(200).json(seasons);
+  });
+});
+
+app.get("/api/getTags", async (req, res) => {
+  const { mode } = req.query;
+
+  if (!mode) {
+    return res.status(400).send("Missing required parameters: mode");
+  }
+
+  try {
+    const latestTournament =
+      (await getNextTournamentId("player_actions", mode as string)) - 1;
+    const currentSeason = await findSeasonIdByTournament(
+      latestTournament,
+      mode
+    );
+
+    const getAllSeasonIdsQuery = "SELECT id FROM season_map";
+
+    const rows: any = await new Promise((resolve, reject) => {
+      db.all(getAllSeasonIdsQuery, [], (err, rows) => {
+        if (err) {
+          console.error("Error:", err);
+          reject(err);
+          return;
+        }
+        resolve(rows);
+      });
+    });
+
+    let ppgTags: any = {
+      "3+ PPG": [],
+      "4+ PPG": [],
+      "5+ PPG": [],
+      "6+ PPG": [],
+      "7+ PPG": [],
+    };
+    let pptTags: any = {
+      "10+ PPT": [],
+      "12+ PPT": [],
+      "15+ PPT": [],
+      "17+ PPT": [],
+      "20+ PPT": [],
+      "25+ PPT": [],
+      "30+ PPT": [],
+    };
+    let ppsTags: any = {
+      "0.2+ PPS": [],
+      "0.35+ PPS": [],
+      "0.5+ PPS": [],
+      "0.75+ PPS": [],
+    };
+
+    for (const row of rows) {
+      const seasonId = row.id;
+
+      if (seasonId == currentSeason) {
+        continue;
+      }
+
+      const ppgSeason: any = await getAveragePointsPerGame(mode, seasonId, db);
+      const pptSeason: any = await getAveragePointsPerTournament(
+        mode,
+        seasonId,
+        db
+      );
+      const ppsSeason: any = await getAveragePointsPerStroke(
+        mode,
+        seasonId,
+        db
+      );
+
+      for (const name of Object.keys(ppgSeason)) {
+        const number = parseFloat(ppgSeason[name]);
+        if (number >= 3) ppgTags["3+ PPG"].push(name);
+        if (number >= 4) ppgTags["4+ PPG"].push(name);
+        if (number >= 5) ppgTags["5+ PPG"].push(name);
+        if (number >= 6) ppgTags["6+ PPG"].push(name);
+        if (number >= 7) ppgTags["7+ PPG"].push(name);
+      }
+
+      for (const name of Object.keys(pptSeason)) {
+        const number = parseFloat(pptSeason[name]);
+        if (number >= 10) pptTags["10+ PPT"].push(name);
+        if (number >= 12) pptTags["12+ PPT"].push(name);
+        if (number >= 15) pptTags["15+ PPT"].push(name);
+        if (number >= 17) pptTags["17+ PPT"].push(name);
+        if (number >= 20) pptTags["20+ PPT"].push(name);
+        if (number >= 25) pptTags["25+ PPT"].push(name);
+        if (number >= 30) pptTags["30+ PPT"].push(name);
+      }
+
+      for (const name of Object.keys(ppsSeason)) {
+        const number = parseFloat(ppsSeason[name]);
+        if (number >= 0.2) ppsTags["0.2+ PPS"].push(name);
+        if (number >= 0.35) ppsTags["0.35+ PPS"].push(name);
+        if (number >= 0.5) ppsTags["0.5+ PPS"].push(name);
+        if (number >= 0.75) ppsTags["0.75+ PPS"].push(name);
+      }
+    }
+
+    const playerTags: any = {};
+
+    const updatePlayerTags = (tagObj: any) => {
+      Object.keys(tagObj).forEach((tag) => {
+        tagObj[tag].forEach((player: any) => {
+          if (!playerTags[player]) {
+            playerTags[player] = [];
+          }
+          playerTags[player].push(tag);
+        });
+      });
+    };
+
+    Object.values({ ppgTags, pptTags, ppsTags }).forEach((tagValues) => {
+      updatePlayerTags(tagValues);
+    });
+
+    Object.keys(playerTags).forEach((player) => {
+      const tagList = playerTags[player];
+      const uniqueTags = new Set(tagList);
+      if (uniqueTags.size !== tagList.length) {
+        const playerCount = tagList.filter(
+          (tag: any) => tag === tagList[0]
+        ).length;
+        playerTags[player] = [`${player} (${playerCount} times)`];
+      }
+    });
+
+    res.send({ playerTags });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+app.get("/api/getSeasonProgress", async (_, res) => {
+  const nextTournamentS = await getNextTournamentId(
+    "player_actions",
+    "singles"
+  );
+  const nextTournamentD = await getNextTournamentId(
+    "player_actions",
+    "doubles"
+  );
+
+  const currentSeasonId = await findSeasonIdByTournament(
+    nextTournamentS,
+    "singles"
+  );
+
+  const query = `
+    SELECT startSinglesId, endSinglesId, startDoublesId, endDoublesId 
+    FROM season_map 
+    WHERE id = ?;
+`;
+
+  // Execute the query
+  db.get(query, [currentSeasonId], (err, row: any) => {
+    if (err) {
+      console.error("Error:", err);
+      return;
+    }
+
+    if (row) {
+      const singlesCompletionCurrent =
+        (nextTournamentS - row.startSinglesId) /
+        (row.endSinglesId - row.startSinglesId);
+      const singlesCompletionPrevious =
+        (nextTournamentS - 1 - row.startSinglesId) /
+        (row.endSinglesId - row.startSinglesId);
+
+      const doublesCompletionCurrent =
+        (nextTournamentD - row.startDoublesId) /
+        (row.endDoublesId - row.startDoublesId);
+      const doublesCompletionPrevious =
+        (nextTournamentD - 1 - row.startDoublesId) /
+        (row.endDoublesId - row.startDoublesId);
+
+      const combinedCompletionCurrent =
+        (nextTournamentD -
+          row.startDoublesId +
+          (nextTournamentS - row.startSinglesId)) /
+        (row.endSinglesId -
+          row.startSinglesId +
+          (row.endDoublesId - row.startDoublesId));
+
+      const combinedCompletionPrevious =
+        (nextTournamentD -
+          1 -
+          row.startDoublesId +
+          (nextTournamentS - 1 - row.startSinglesId)) /
+        (row.endSinglesId -
+          row.startSinglesId +
+          (row.endDoublesId - row.startDoublesId));
+
+      res.send({
+        singlesCompletionPrevious,
+        singlesCompletionCurrent,
+        doublesCompletionCurrent,
+        doublesCompletionPrevious,
+        combinedCompletionCurrent,
+        combinedCompletionPrevious,
+        nextTournamentD,
+        nextTournamentS,
+      });
+    } else {
+      res.send("No data found for the provided season ID.");
+    }
   });
 });
 
