@@ -103,6 +103,7 @@ const PlayerStatsTable = ({ players }: any) => {
     "D-": { min: 30, max: 34.99, gpa: 0.67 },
     F: { min: 0, max: 29.99, gpa: 0 },
     NOEVIDENCE: { min: 0, max: 29.99, gpa: 0 },
+    "N/A": { min: -1, max: -1, gpa: 0 },
   };
 
   const modeOptions = [
@@ -112,8 +113,13 @@ const PlayerStatsTable = ({ players }: any) => {
 
   // Function to get letter grade based on GPA
   const getLetterGrade = (gpa: any) => {
+    if (gpa == -1) {
+      return "N/A";
+    }
+
     for (const [letter, range] of Object.entries(gradeTable)) {
       if (gpa >= (range as any).min && gpa <= (range as any).max) {
+        console.log(letter);
         return letter;
       }
     }

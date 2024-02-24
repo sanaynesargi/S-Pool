@@ -649,7 +649,8 @@ const PlayerStatsComponent = () => {
         </Tabs>
       </Box>
       <Divider orientation="vertical" />
-      <VStack w="50%" spacing={7}>
+
+      <VStack w="50%" spacing={7} pos="absolute" right={-10} top={10}>
         <Select
           placeholder="Select Player"
           onChange={(e) => {
