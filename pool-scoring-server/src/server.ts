@@ -711,6 +711,50 @@ const findPlayerIndex = (playerName: string, arr: any) => {
   return "null";
 };
 
+const erf = (x: any) => {
+  const a1 = 0.254829592;
+  const a2 = -0.284496736;
+  const a3 = 1.421413741;
+  const a4 = -1.453152027;
+  const a5 = 1.061405429;
+  const p = 0.3275911;
+
+  const sign = x < 0 ? -1 : 1;
+  x = Math.abs(x);
+
+  const t = 1.0 / (1.0 + p * x);
+  const y =
+    1 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+
+  return sign * y;
+};
+
+// Function to calculate the CDF of the standard normal distribution
+const standardNormalCDF = (z: any) => {
+  return (1 + erf(z / Math.sqrt(2))) / 2;
+};
+
+function calculateZScores(numbers: any) {
+  // Calculate the mean
+  const mean =
+    numbers.reduce((acc: any, number: any) => acc + number, 0) / numbers.length;
+
+  // Calculate the standard deviation
+  const variance =
+    numbers.reduce(
+      (acc: any, number: any) => acc + Math.pow(number - mean, 2),
+      0
+    ) / numbers.length;
+  const standardDeviation = Math.sqrt(variance);
+
+  // Calculate Z-scores for each number
+  return numbers.map((number: any) => (number - mean) / standardDeviation);
+}
+
+const calculatePercentile = (z: any) => {
+  return standardNormalCDF(z) * 100;
+};
+
 app.post("/api/end-game", async (req, res) => {
   try {
     const actions: PlayerAction[] = req.body;
@@ -2296,6 +2340,119 @@ app.get("/api/getSeasonProgress", async (_, res) => {
       });
     } else {
       res.send("No data found for the provided season ID.");
+    }
+  });
+});
+
+app.get("/api/grades", (req, res) => {
+  const { mode, seasonId } = req.query;
+
+  if (!mode) {
+    return res
+      .status(404)
+      .json({ Error: "Invalid Request: mode parameter is required" });
+  }
+
+  const seasonFilter =
+    seasonId != ""
+      ? `AND pa.tournamentId BETWEEN 
+       (SELECT ${
+         mode === "doubles" ? "startDoublesId" : "startSinglesId"
+       } FROM season_map WHERE id = ${seasonId})
+       AND 
+       (SELECT ${
+         mode === "doubles" ? "endDoublesId" : "endSinglesId"
+       } FROM season_map WHERE id = ${seasonId})`
+      : "";
+
+  const addedJoin = `LEFT JOIN season_games sg ON pa.playerName = sg.playerName AND pa.mode = sg.mode AND sg.seasonId = ${seasonId}`;
+
+  const sql = `
+    SELECT 
+      pa.playerName, 
+      pa.actionType,
+      SUM(pa.actionCount) AS actionCount, 
+      SUM(pa.actionValue * pa.actionCount) AS actionValue,
+      pg.gamesPlayed
+      ${seasonId != "" ? ",sg.gamesPlayed as tid" : ""}
+    FROM 
+      player_actions pa
+    JOIN 
+      player_tournament_games pg ON pa.playerName = pg.playerName AND pa.mode = pg.mode
+    ${seasonId != "" ? addedJoin : ""}
+    WHERE 
+      pa.mode = '${mode}'
+      ${seasonFilter}
+    GROUP BY 
+      pa.playerName, pa.actionType, pg.gamesPlayed
+    ORDER BY 
+      pa.playerName, pa.actionType;
+  `;
+
+  let invertedStats = ["No Result", "Scratch", "Opp Ball In", "Opp. 8 Ball In"];
+
+  db.all(sql, [], (err, rows: any) => {
+    if (err) {
+      res.status(500).send(err.message);
+    } else {
+      let stats: any = {};
+
+      for (let entry of rows) {
+        if (!stats[entry.playerName]) {
+          stats[entry.playerName] = [];
+        }
+        stats[entry.playerName].push({
+          actionType: entry.actionType,
+          gamesPlayed: entry.gamesPlayed,
+          count: entry.actionCount,
+
+          averageActionCount:
+            entry.actionCount / (entry.tid ?? entry.gamesPlayed),
+          averageActionValue:
+            (entry.actionCount / (entry.tid ?? entry.gamesPlayed)) *
+            entry.actionValue,
+        });
+      }
+
+      let actionTypeValues: any = {};
+      let numberActionMap: any = {};
+
+      for (let actionType of Object.keys(scoreMap)) {
+        actionTypeValues[actionType] = [];
+        numberActionMap[actionType] = [];
+
+        for (let [name, data] of Object.entries(stats)) {
+          for (let obj of data as any) {
+            if (obj.actionType != actionType) {
+              continue;
+            }
+
+            actionTypeValues[actionType].push(obj.averageActionCount);
+            numberActionMap[actionType].push(name);
+          }
+        }
+      }
+
+      let percentiles: any = {};
+
+      for (let [action, data] of Object.entries(actionTypeValues)) {
+        let zScores = calculateZScores(data);
+
+        percentiles[action] = {};
+
+        for (let i = 0; i < zScores.length; i++) {
+          let score = zScores[i];
+          let name = numberActionMap[action][i];
+
+          if (invertedStats.includes(action)) {
+            percentiles[action][name] = 100 - calculatePercentile(score);
+          } else {
+            percentiles[action][name] = calculatePercentile(score);
+          }
+        }
+      }
+
+      res.status(200).json(percentiles);
     }
   });
 });

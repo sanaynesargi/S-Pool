@@ -34,7 +34,7 @@ const HomePage: React.FC = () => {
     >
       <Container centerContent>
         <Heading mb={6} size="2xl" color="teal.500">
-          S-Pool v.1.6.1
+          S-Pool v.1.7.3
         </Heading>
 
         <HStack spacing={8}>
@@ -112,12 +112,23 @@ const HomePage: React.FC = () => {
               colorScheme="cyan"
               width="200px"
               height="60px"
-              onClick={() => handleNavigation("/about")}
+              onClick={() => handleNavigation("/grades")}
             >
-              About
+              Report Card
             </Button>
           </VStack>
         </HStack>
+        <Button
+          colorScheme="gray"
+          width="200px"
+          height="60px"
+          onClick={() => handleNavigation("/about")}
+          pos="absolute"
+          bottom={10}
+          right={10}
+        >
+          About
+        </Button>
       </Container>
     </Flex>
   );

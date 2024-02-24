@@ -61,6 +61,7 @@ const SlideshowModal = ({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [tags, setTags] = useState<any>({});
   const [seasonProgress, setSeasonProgress] = useState<any>({});
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
   const components = [
     () => (
@@ -127,11 +128,15 @@ const SlideshowModal = ({
 
   const closeModal = () => {
     setIsOpen(true);
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
   };
 
   const nextComponent = () => {
     containerRef.current.scrollTop = 0;
-    if (currentIndex == 2) {
+    if (currentIndex === 2) {
       closeModal();
       return;
     }
@@ -163,8 +168,6 @@ const SlideshowModal = ({
     fetchData();
   }, []);
 
-  const containerRef = useRef<any>(null);
-
   useEffect(() => {
     const scrollInterval = setInterval(() => {
       if (containerRef.current) {
@@ -179,7 +182,7 @@ const SlideshowModal = ({
         if (
           containerRef.current.scrollHeight - containerRef.current.scrollTop ===
             containerRef.current.clientHeight &&
-          containerRef.current.scrollTop != 0
+          containerRef.current.scrollTop !== 0
         ) {
           nextComponent();
         }
@@ -188,6 +191,24 @@ const SlideshowModal = ({
 
     return () => clearInterval(scrollInterval);
   }, []);
+
+  const playAudio = (audioUrl: string) => {
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    const newAudio = new Audio(audioUrl);
+    setAudio(newAudio);
+    newAudio.play();
+  };
+
+  const containerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (isGameStarted && !isOpen) {
+      playAudio("https://www.soundboard.com/track/download/432489");
+    }
+  }, [isGameStarted, isOpen]);
 
   return (
     <>
@@ -204,6 +225,7 @@ const SlideshowModal = ({
             <Button mr={2} onClick={prevComponent}>
               Previous
             </Button>
+
             <Button onClick={nextComponent}>Next</Button>
           </Box>
         </ModalContent>

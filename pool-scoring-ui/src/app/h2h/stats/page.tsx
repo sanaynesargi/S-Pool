@@ -99,7 +99,6 @@ export default function Home() {
     }
 
     data.then((resp: any) => {
-      console.log(resp.data);
       // Sort data by winPercentage before setting it
       const sortedData = resp.data
         ? (resp.data as any[]).sort((a, b) => {
