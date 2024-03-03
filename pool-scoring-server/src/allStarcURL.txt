@@ -1,8 +1,0 @@
-curl 'http://localhost:8000/api/end-game' \
--X 'POST' \
--H 'Accept: application/json, text/plain, */*' \
--H 'Content-Type: application/json' \
--H 'Origin: http://localhost:3000' \
--H 'Referer: http://localhost:3000/' \
--H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.6.1 Safari/605.1.15' \
---data-binary '{"playerActionCounts":{"Sanay":{"Ball In":7,"No Result":17,"4+ Ball In":1,"Scratch":3,"2 Ball In":2,"8 Ball In":2},"Aarav":{"2 Ball In":2,"No Result":19,"Ball In":5,"8 Ball In":1,"Scratch":1},"Ahan":{"No Result":16,"Scratch":5,"2 Ball In":1,"Ball In":4,"Opp. 8 Ball In":1,"4+ Ball In":1},"Cyrus":{"No Result":14,"Opp Ball In":2,"Ball In":6,"Scratch":4,"2 Ball In":1}},"mode":"allstar","standings":{"Sanay":4,"Aarav":4,"Ahan":4,"Cyrus":4},"playerGameCounts":{},"matches":[{"playerOne":"Aarav;Sanay","playerTwo":"Cyrus;Ahan","winner":"Aarav;Sanay","isOT":false,"ballsWon":4},{"playerOne":"Aarav;Sanay","playerTwo":"Cyrus;Ahan","winner":"Aarav;Sanay","isOT":false,"ballsWon":2},{"playerOne":"Aarav;Sanay","playerTwo":"Cyrus;Ahan","winner":"Aarav;Sanay","isOT":false,"ballsWon":1},{"playerOne":"Aarav;Sanay","playerTwo":"Cyrus;Ahan","winner":"Aarav;Sanay","isOT":false,"ballsWon":2}]}'

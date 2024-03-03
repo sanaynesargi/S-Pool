@@ -516,7 +516,7 @@ const getRecords = (mode: string, seasonId: any) => {
     let queryParams = [mode, mode];
 
     // Modify the query and parameters if seasonId is provided
-    if (seasonId != "") {
+    if (seasonId != "" && mode != "allstar") {
       let d = `
           SELECT player1 AS player_name FROM player_matchups pm
           INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startDoublesId AND sm.endDoublesId
@@ -558,7 +558,7 @@ const getRecords = (mode: string, seasonId: any) => {
             FROM player_matchups pm
             INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startSinglesId AND sm.endSinglesId
             WHERE (pm.player1 = ? OR pm.player2 = ?) AND pm.mode = ? ${
-              seasonId != "" ? "AND sm.id = ?" : ""
+              seasonId != "" && mode != "allstar" ? "AND sm.id = ?" : ""
             }
           `;
 
@@ -579,7 +579,7 @@ const getRecords = (mode: string, seasonId: any) => {
             matchParams = [player, player, player, player, mode];
           }
 
-          if (seasonId != "") {
+          if (seasonId != "" && mode != "allstar") {
             matchParams.push(seasonId);
           }
 
@@ -887,7 +887,7 @@ app.get("/api/average-points-per-game", (req, res) => {
   }
 
   const seasonFilter =
-    seasonId != ""
+    seasonId != "" && mode != "allstar"
       ? `JOIN (SELECT ${
           mode === "doubles"
             ? "startDoublesId, endDoublesId"
@@ -939,7 +939,7 @@ app.get("/api/average-points-per-tournament-game", async (req, res) => {
   }
 
   const seasonFilter =
-    seasonId != ""
+    seasonId != "" && mode != "allstar"
       ? `JOIN (SELECT ${
           mode === "doubles"
             ? "startDoublesId, endDoublesId"
@@ -959,10 +959,12 @@ app.get("/api/average-points-per-tournament-game", async (req, res) => {
     SELECT ptg.playerName,
            IFNULL(SUM(pa.actionValue * pa.actionCount), 0) as totalPoints,
            IFNULL(ptg.gamesPlayed, 0) as gamesPlayed
-           ${seasonId != "" ? ",sg.gamesPlayed as tid" : ""}
+           ${
+             seasonId != "" && mode != "allstar" ? ",sg.gamesPlayed as tid" : ""
+           }
     FROM player_tournament_games ptg
     LEFT JOIN player_actions pa ON ptg.playerName = pa.playerName AND ptg.mode = pa.mode
-    ${seasonId != "" ? addedJoin : ""}
+    ${seasonId != "" && mode != "allstar" ? addedJoin : ""}
     ${seasonFilter}
     WHERE ptg.mode = '${mode}'
     GROUP BY ptg.playerName
@@ -1055,7 +1057,7 @@ app.get("/api/player-ppt", (req, res) => {
   }
 
   const seasonFilter =
-    seasonId != ""
+    seasonId != "" && mode != "allstar"
       ? `AND tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
@@ -1112,7 +1114,7 @@ app.get("/api/player-tt", (req, res) => {
   }
 
   const seasonFilter =
-    seasonId != ""
+    seasonId != "" && mode != "allstar"
       ? `AND tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
@@ -1167,7 +1169,7 @@ app.get("/api/player-actions-stats", (req, res) => {
       .json({ Error: "Invalid Request: mode parameter is required" });
   }
   const seasonFilter =
-    seasonId != ""
+    seasonId != "" && mode != "allstar"
       ? `AND tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
@@ -1227,7 +1229,7 @@ app.get("/api/player-actions-stats-averages", (req, res) => {
   }
 
   const seasonFilter =
-    seasonId != ""
+    seasonId != "" && mode != "allstar"
       ? `AND pa.tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
@@ -1247,12 +1249,12 @@ app.get("/api/player-actions-stats-averages", (req, res) => {
       SUM(pa.actionCount) AS actionCount, 
       SUM(pa.actionValue * pa.actionCount) AS actionValue,
       pg.gamesPlayed
-      ${seasonId != "" ? ",sg.gamesPlayed as tid" : ""}
+      ${seasonId != "" && mode != "allstar" ? ",sg.gamesPlayed as tid" : ""}
     FROM 
       player_actions pa
     JOIN 
       player_tournament_games pg ON pa.playerName = pg.playerName AND pa.mode = pg.mode
-    ${seasonId != "" ? addedJoin : ""}
+    ${seasonId != "" && mode != "allstar" ? addedJoin : ""}
     WHERE 
       pa.mode = '${mode}'
       ${seasonFilter}
@@ -1300,7 +1302,7 @@ app.get("/api/player-actions-stats-average-tournaments", (req, res) => {
   }
 
   const seasonFilter =
-    seasonId != ""
+    seasonId != "" && mode != "allstar"
       ? `AND pa.tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
@@ -1378,7 +1380,7 @@ app.get("/api/get-records", (req, res) => {
   let queryParams = [mode, mode];
 
   // Modify the query and parameters if seasonId is provided
-  if (seasonId != "") {
+  if (seasonId != "" && mode != "allstar") {
     let d = `
         SELECT player1 AS player_name FROM player_matchups pm
         INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startDoublesId AND sm.endDoublesId
@@ -1419,7 +1421,7 @@ app.get("/api/get-records", (req, res) => {
           FROM player_matchups pm
           INNER JOIN season_map sm ON pm.tournamentId BETWEEN sm.startSinglesId AND sm.endSinglesId
           WHERE (pm.player1 = ? OR pm.player2 = ?) AND pm.mode = ? ${
-            seasonId != "" ? "AND sm.id = ?" : ""
+            seasonId != "" && mode != "allstar" ? "AND sm.id = ?" : ""
           }
         `;
 
@@ -1439,7 +1441,7 @@ app.get("/api/get-records", (req, res) => {
           matchParams = [player, player, player, mode];
         }
 
-        if (seasonId != "") {
+        if (seasonId != "" && mode != "allstar") {
           matchParams.push(seasonId);
         }
 
@@ -1967,7 +1969,7 @@ app.get("/api/tournamentBestWorst/", (req, res) => {
   const { mode, seasonId } = req.query;
 
   const seasonFilter =
-    seasonId != ""
+    seasonId != "" && mode != "allstar"
       ? `JOIN (SELECT ${
           mode === "doubles"
             ? "startDoublesId, endDoublesId"
@@ -2365,7 +2367,7 @@ app.get("/api/grades", (req, res) => {
   }
 
   const seasonFilter =
-    seasonId != ""
+    seasonId != "" && mode != "allstar"
       ? `AND pa.tournamentId BETWEEN 
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
@@ -2385,12 +2387,12 @@ app.get("/api/grades", (req, res) => {
       SUM(pa.actionCount) AS actionCount, 
       SUM(pa.actionValue * pa.actionCount) AS actionValue,
       pg.gamesPlayed
-      ${seasonId != "" ? ",sg.gamesPlayed as tid" : ""}
+      ${seasonId != "" && mode != "allstar" ? ",sg.gamesPlayed as tid" : ""}
     FROM 
       player_actions pa
     JOIN 
       player_tournament_games pg ON pa.playerName = pg.playerName AND pa.mode = pg.mode
-    ${seasonId != "" ? addedJoin : ""}
+    ${seasonId != "" && mode != "allstar" ? addedJoin : ""}
     WHERE 
       pa.mode = '${mode}'
       ${seasonFilter}

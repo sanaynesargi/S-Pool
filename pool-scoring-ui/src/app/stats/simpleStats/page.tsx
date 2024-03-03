@@ -39,10 +39,13 @@ const getNameIndex = (name: string, arr: any) => {
 const createPlayers = (
   a: any,
   b: any,
+
   c: any,
   d: any,
+
   e: any,
   f: any,
+
   g: any,
   h: any
 ) => {
@@ -95,13 +98,21 @@ type SortOrder = "asc" | "desc";
 const PlayerList = () => {
   const [singlesGameData, setSinglesGameData] = useState([]);
   const [doublesGameData, setDoublesGameData] = useState([]);
+  const [allStarGameData, setAllStarGameData] = useState([]);
+
   const [singlesTournamentData, setSinglesTournamentGameData] = useState([]);
   const [doublesTournamentData, setDoublesTournamentGameData] = useState([]);
+  const [allStarTournamentData, setAllStarTournamentGameData] = useState([]);
+
   const [pptSinglesData, setPPTSinglesData] = useState([]);
   const [pptDoublesData, setPPTDoublesData] = useState([]);
+  const [pptAllStarData, setPPTAllStarData] = useState([]);
+
   const [singlesBWT, setSinglesBWT] = useState<any>();
   const [doublesBWT, setDoublesBWT] = useState<any>();
-  const [mode, setMode] = useState(true);
+  const [allStarBWT, setAllStarBWT] = useState<any>();
+
+  const [mode, setMode] = useState(0);
   const [players, setPlayers] = useState([]);
   const [, forceUpdate] = useReducer((x: any) => x + 1, 0);
   const [sortField, setSortField] = useState<keyof Player | null>(null);
@@ -136,6 +147,11 @@ const PlayerList = () => {
         { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
       );
 
+      const gamesResA = await axios.get(
+        `http://${apiUrl}/average-points-per-tournament-game`,
+        { params: { mode: "allstar", seasonId: selectedSeason ?? null } }
+      );
+
       const tournamentsResS = await axios.get(
         `http://${apiUrl}/average-points-per-game`,
         { params: { mode: "singles", seasonId: selectedSeason ?? null } }
@@ -146,11 +162,19 @@ const PlayerList = () => {
         { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
       );
 
+      const tournamentsResA = await axios.get(
+        `http://${apiUrl}/average-points-per-game`,
+        { params: { mode: "allstar", seasonId: selectedSeason ?? null } }
+      );
+
       const pptSingles = await axios.get(`http://${apiUrl}/player-ppt`, {
         params: { mode: "singles", seasonId: selectedSeason ?? null },
       });
       const pptDoubles = await axios.get(`http://${apiUrl}/player-ppt`, {
         params: { mode: "doubles", seasonId: selectedSeason ?? null },
+      });
+      const pptAllStar = await axios.get(`http://${apiUrl}/player-ppt`, {
+        params: { mode: "allstar", seasonId: selectedSeason ?? null },
       });
 
       const bwtSingles = await axios.get(
@@ -160,6 +184,10 @@ const PlayerList = () => {
       const bwtDoubles = await axios.get(
         `http://${apiUrl}/tournamentBestWorst`,
         { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
+      );
+      const bwtAllStar = await axios.get(
+        `http://${apiUrl}/tournamentBestWorst`,
+        { params: { mode: "allstar", seasonId: selectedSeason ?? null } }
       );
 
       // Sort the data
@@ -180,12 +208,20 @@ const PlayerList = () => {
 
       setSinglesGameData(sortData(gamesResS.data) as any);
       setDoublesGameData(sortData(gamesResD.data) as any);
+      setAllStarGameData(sortData(gamesResA.data) as any);
+
       setSinglesTournamentGameData(sortData(tournamentsResS.data) as any);
       setDoublesTournamentGameData(sortData(tournamentsResD.data) as any);
+      setAllStarTournamentGameData(sortData(tournamentsResA.data) as any);
+
       setPPTSinglesData(sortData(pptSingles.data) as any);
       setPPTDoublesData(sortData(pptDoubles.data) as any);
+      setPPTAllStarData(sortData(pptAllStar.data) as any);
+
       setSinglesBWT(bwtSingles.data.playerBestWorst as any);
       setDoublesBWT(bwtDoubles.data.playerBestWorst as any);
+      setAllStarBWT(bwtAllStar.data.playerBestWorst as any);
+
       setIsLoading(false);
     };
 
@@ -203,6 +239,17 @@ const PlayerList = () => {
     pptDoublesData,
     singlesBWT,
     doublesBWT
+  );
+
+  const [playersA, playersNPA] = createPlayers(
+    allStarGameData,
+    allStarTournamentData,
+    allStarGameData,
+    allStarTournamentData,
+    pptAllStarData,
+    pptAllStarData,
+    allStarBWT,
+    allStarBWT
   );
 
   // useEffect(() => {
@@ -262,18 +309,36 @@ const PlayerList = () => {
           <Button
             onClick={() => {
               setPlayers(playersS);
-              setMode(true);
+              setMode(0);
             }}
           >
             Singles
           </Button>
           <Button
             onClick={() => {
-              setMode(false);
+              setMode(1);
               setPlayers(playersD);
             }}
           >
             Doubles
+          </Button>
+          <Button
+            onClick={() => {
+              setMode(2);
+              setPlayers(playersA);
+            }}
+            colorScheme="orange"
+          >
+            All-Star
+          </Button>
+          <Button
+            onClick={() => {
+              setMode(2);
+              setPlayers(playersA);
+            }}
+            colorScheme="yellow"
+          >
+            All-NPA
           </Button>
         </Flex>
         <Box w="full" bg="gray.800" borderRadius="lg">
