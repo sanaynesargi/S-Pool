@@ -158,6 +158,14 @@ function calculateOPS(player: Player) {
   return OPS;
 }
 
+function scalePercentageToFive(value: number) {
+  // Ensure the value is within the range [0, 100]
+  value = Math.min(100, Math.max(0, value));
+
+  // Scale the value to the range [0, 5]
+  return value / 20;
+}
+
 function calculateMVP(player: any, WPS: any, WPD: any) {
   const weightPS = 0.6;
   const weightWPS = 0.25;
@@ -172,7 +180,10 @@ function calculateMVP(player: any, WPS: any, WPD: any) {
 
   const OPS = player.averageScore; // Using averageScore from averagedPlayers
 
-  const MVP = weightPS * OPS + weightWPS * WPS + weightWPD * WPD;
+  const MVP =
+    weightPS * OPS +
+    weightWPS * scalePercentageToFive(WPS) +
+    weightWPD * scalePercentageToFive(WPD);
 
   return MVP;
 }
@@ -626,14 +637,21 @@ const AccoladeTrackerPage = () => {
                 <Text fontWeight="bold">MVP Selection Index</Text>
                 <Text>
                   0.6 x {selectedPlayer.avgScore?.toFixed(3)} + 0.25 x{" "}
-                  {selectedPlayer.singlesData?.PERC} + 0.15 x{" "}
-                  {selectedPlayer.doublesData?.PERC} =
+                  {scalePercentageToFive(selectedPlayer.singlesData?.PERC)} +
+                  0.15 x{" "}
+                  {scalePercentageToFive(selectedPlayer.doublesData?.PERC)} =
                   <Text fontWeight="bold">
-                    {selectedPlayer.singlesData?.PERC
+                    {typeof selectedPlayer.singlesData?.PERC == "number"
                       ? (
                           0.6 * selectedPlayer.avgScore +
-                          0.25 * selectedPlayer.singlesData?.PERC +
-                          0.15 * selectedPlayer.doublesData?.PERC
+                          0.25 *
+                            scalePercentageToFive(
+                              selectedPlayer.singlesData?.PERC
+                            ) +
+                          0.15 *
+                            scalePercentageToFive(
+                              selectedPlayer.doublesData?.PERC
+                            )
                         ).toFixed(3)
                       : 0}
                   </Text>

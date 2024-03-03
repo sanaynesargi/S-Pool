@@ -18,6 +18,7 @@ import PlayerAccolades from "./PlayerAccolades";
 import axios from "axios";
 import { apiUrl } from "../utils/utils";
 import { useRef } from "react";
+import AllStars from "./AllStars";
 
 const DualProgressBar = ({ percentage1, percentage2 }: any) => {
   return (
@@ -120,6 +121,8 @@ const SlideshowModal = ({
         </VStack>
       </div>
     ),
+
+    () => <AllStars />,
   ];
 
   const openModal = () => {
@@ -136,7 +139,7 @@ const SlideshowModal = ({
 
   const nextComponent = () => {
     containerRef.current.scrollTop = 0;
-    if (currentIndex === 2) {
+    if (currentIndex === components.length - 1) {
       closeModal();
       return;
     }

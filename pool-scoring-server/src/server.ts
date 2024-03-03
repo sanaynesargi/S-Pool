@@ -85,6 +85,17 @@ db.serialize(() => {
     gamesPlayed INTEGER NOT NULL,
     mode TEXT NOT NULL
   );`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS awards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    playerName INTEGER NOT NULL,
+    allStarSelections INTEGER NOT NULL,
+    allNpa1Selections INTEGER NOT NULL,
+    allNpa2Selections INTEGER NOT NULL,
+    allNpa3Selections INTEGER NOT NULL,
+    allStarSeasons TEXT NOT NULL,
+    allNpaSeasons TEXT NOT NULL
+  );`);
 });
 
 dbFantasy.serialize(() => {
@@ -2454,6 +2465,103 @@ app.get("/api/grades", (req, res) => {
 
       res.status(200).json(percentiles);
     }
+  });
+});
+
+function checkPlayerExists(playerName: string): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const sql = `SELECT * FROM awards WHERE playerName = ?`;
+    db.get(sql, [playerName], (err, row) => {
+      if (err) {
+        reject("Failed to query the database");
+      }
+
+      if (row) {
+        resolve(true);
+      } else {
+        resolve(false);
+      }
+    });
+  });
+}
+
+app.post("/api/awards", async (req: any, res: any) => {
+  const { AllStar, AllNPA, all_stars_only } = req.body;
+  const currentSeason = req.body.currentSeason || 1; // default to season 1 if not provided
+
+  if (
+    !AllStar ||
+    !AllNPA ||
+    !Array.isArray(AllStar) ||
+    typeof AllNPA !== "object"
+  ) {
+    return res.status(400).json({ error: "Invalid request body format" });
+  }
+
+  if (all_stars_only) {
+    for (const player of AllStar) {
+      const exists = await checkPlayerExists(player);
+      let query = "";
+
+      if (!exists) {
+        query = `INSERT INTO awards (playerName, allStarSelections, allNpa1Selections, allNpa2Selections, allNpa3Selections, allStarSeasons, allNpaSeasons)
+          VALUES ('${player}', 1, 0, 0, 0, '${currentSeason},', '');`;
+      } else {
+        query = `UPDATE awards SET allStarSelections = allStarSelections + 1, allStarSeasons = allStarSeasons || "${currentSeason}," WHERE playerName = '${player}';`;
+      }
+
+      db.run(query);
+    }
+  } else {
+    for (const player of Object.keys(AllNPA)) {
+      const exists = await checkPlayerExists(player);
+      let query = "";
+
+      if (!exists) {
+        if (AllNPA[player] == 1) {
+          query = `INSERT INTO awards (playerName, allStarSelections, allNpa1Selections, allNpa2Selections, allNpa3Selections, allStarSeasons, allNpaSeasons)
+          VALUES ('${player}', 0, 1, 0, 0, '', '${currentSeason},');`;
+        }
+        if (AllNPA[player] == 2) {
+          query = `INSERT INTO awards (playerName, allStarSelections, allNpa1Selections, allNpa2Selections, allNpa3Selections, allStarSeasons, allNpaSeasons)
+          VALUES ('${player}', 0, 0, 1, 0, '', '${currentSeason},');`;
+        }
+        if (AllNPA[player] == 3) {
+          query = `INSERT INTO awards (playerName, allStarSelections, allNpa1Selections, allNpa2Selections, allNpa3Selections, allStarSeasons, allNpaSeasons)
+          VALUES ('${player}', 0, 0, 0, 1, '', '${currentSeason},');`;
+        }
+      } else {
+        query = `UPDATE awards SET allNpa${AllNPA[player]}Selections = allNpa${AllNPA[player]}Selections + 1, allNpaSeasons = allNpaSeasons || "${currentSeason}," WHERE playerName = '${player}';`;
+      }
+      db.run(query);
+    }
+  }
+
+  res.send({ success: true });
+});
+
+app.get("/api/award_counts", (_, res) => {
+  db.all(`SELECT * FROM awards`, [], function (err, rows) {
+    if (err) {
+      console.error("Failed to fetch data from the database:", err);
+      return;
+    }
+
+    let formatted: any = {};
+
+    // Process the rows
+    rows.forEach((row: any) => {
+      formatted[row.playerName] = {
+        AS: row.allStarSelections,
+        ASSe: row.allStarSeasons,
+        NPA1: row.allNpa1Selections,
+        NPA2: row.allNpa2Selections,
+        NPA3: row.allNpa3Selections,
+        NPASe: row.allNpaSeasons,
+      };
+    });
+
+    res.send(formatted);
   });
 });
 

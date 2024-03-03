@@ -274,12 +274,23 @@ const NameGrid: React.FC<NameGridProps> = ({
   const bgColor = "#1A202C";
   const actionBgColor = "#2D3748";
   const defaultBgColor = "#393D47";
+  const allStar = false;
+
+  const styles = allStar
+    ? {
+        bgImage: "All-Star.png", // Replace with the path to your local image
+        bgSize: "100%", // Display the image at its original size
+        bgPosition: "center", // Center the image
+        width: "100%", // Make the container take the full width of the viewport
+        h: "95vh",
+      }
+    : {};
 
   const errorToast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   return (
-    <>
+    <Box bg={bgColor} {...styles}>
       <Flex justifyContent="center" alignItems="center" mb={4}>
         <Button onClick={goToPreviousPage} isDisabled={currentPage === 0}>
           {"<"}
@@ -292,7 +303,7 @@ const NameGrid: React.FC<NameGridProps> = ({
         gap={4}
         w="100%"
         p={4}
-        bg={bgColor}
+        // bg={bgColor}
       >
         {Array.from({ length: totalBoxesPerPage }).map((_, index) => {
           const isNameCell = index % columns === 0;
@@ -472,7 +483,7 @@ const NameGrid: React.FC<NameGridProps> = ({
           details={selectedPlayerDetails}
         />
       )}
-    </>
+    </Box>
   );
 };
 
