@@ -262,6 +262,7 @@ const PlayerStatsComponent = () => {
   const [playerData, setPlayerData] = useState<any>([]);
   const [playerDataS, setPlayerDataS] = useState<any>([]);
   const [playerDataD, setPlayerDataD] = useState<any>([]);
+  const [playerDataA, setPlayerDataA] = useState<any>([]);
 
   const [currentTournament, setCurrentTournament] = useState<any>();
   const [isLoading, setIsLoading] = useState(false);
@@ -270,11 +271,14 @@ const PlayerStatsComponent = () => {
   const [matchups, setMatchups] = useState<any>([]);
   const [matchupsS, setMatchupsS] = useState<any>([]);
   const [matchupsD, setMatchupsD] = useState<any>([]);
+  const [matchupsA, setMatchupsA] = useState<any>([]);
 
   const [tournamentIds, setTournamentIds] = useState<any>([]);
   const [tournamentIdsS, setTournamentIdsS] = useState<any>([]);
   const [tournamentIdsD, setTournamentIdsD] = useState<any>([]);
-  const [mode, setMode] = useState(true);
+  const [tournamentIdsA, setTournamentIdsA] = useState<any>([]);
+
+  const [mode, setMode] = useState(0);
   const [playerLog, setPlayerLog] = useState<any>([]);
 
   const toast = useToast();
@@ -282,6 +286,7 @@ const PlayerStatsComponent = () => {
 
   const [allPlayersS, setAllPlayersS] = useState([]);
   const [allPlayersD, setAllPlayersD] = useState([]);
+  const [allPlayersA, setAllPlayersA] = useState([]);
 
   const router = useRouter();
 
@@ -336,7 +341,7 @@ const PlayerStatsComponent = () => {
       }
     };
     fetchData();
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -347,7 +352,7 @@ const PlayerStatsComponent = () => {
         );
 
         const playersD = await fetch(
-          `http://${apiUrl}/allPlayers?mode=singles`
+          `http://${apiUrl}/allPlayers?mode=doubles`
         );
 
         if (!response.ok) {
@@ -380,7 +385,51 @@ const PlayerStatsComponent = () => {
       }
     };
     fetchData();
-  }, [toast]);
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `http://${apiUrl}/tournamentData?mode=allstar`
+        );
+
+        const playersA = await fetch(
+          `http://${apiUrl}/allPlayers?mode=allstar`
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setPlayerDataA(data.playerSummaries);
+        setMatchupsA(data.matchups);
+        setTournamentIdsA([
+          ...new Set(
+            data.playerSummaries.map((item: any) => item.tournamentId)
+          ),
+        ]);
+
+        const pData = await playersA.json();
+        setAllPlayersA(pData.names);
+
+        //setCurrentTournament(data.playerSummaries[0]?.tournamentId || null);
+      } catch (error: any) {
+        setError(error.message);
+        toast({
+          title: "Error fetching data.",
+          description: error.message,
+          status: "error",
+          duration: 9000,
+          isClosable: true,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const handleTournamentChange = (newId: any) => {
     setCurrentTournament(newId);
@@ -501,26 +550,36 @@ const PlayerStatsComponent = () => {
           />
           <Button
             onClick={() => {
-              setMode(!mode);
+              setMode(mode == 2 ? 0 : mode + 1);
 
-              if (!mode) {
+              const fixedMode = mode + 1 == 3 ? 0 : mode + 1;
+
+              if (fixedMode == 0) {
                 setPlayerData(playerDataS);
                 setMatchups(matchupsS);
                 setTournamentIds(tournamentIdsS);
                 setCurrentTournament(playerDataS[0]?.tournamentId || null);
                 setTournamentIds(tournamentIdsS);
                 setPlayerLog(convertDataToSleeperLog(playerDataS));
-              } else {
+              } else if (fixedMode == 1) {
                 setPlayerData(playerDataD);
                 setMatchups(matchupsD);
                 setTournamentIds(tournamentIdsD);
                 setCurrentTournament(playerDataD[0]?.tournamentId || null);
                 setTournamentIds(tournamentIdsD);
                 setPlayerLog(convertDataToSleeperLog(playerDataD));
+              } else if (fixedMode == 2) {
+                console.log(playerDataA);
+                setPlayerData(playerDataA);
+                setMatchups(matchupsA);
+                setTournamentIds(tournamentIdsA);
+                setCurrentTournament(playerDataA[0]?.tournamentId || null);
+                setTournamentIds(tournamentIdsA);
+                setPlayerLog(convertDataToSleeperLog(playerDataA));
               }
             }}
           >
-            Mode: {mode ? "Singles" : "Doubles"}
+            Mode: {mode == 0 ? "Singles" : mode == 1 ? "Doubles" : "All-Star"}
           </Button>
         </HStack>
         <Tabs variant="enclosed" mt={4}>

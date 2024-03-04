@@ -29,6 +29,7 @@ import { useRouter } from "next/navigation";
 const modeOptions = [
   { label: "Singles", value: "singles" },
   { label: "Doubles", value: "doubles" },
+  { label: "All-Star", value: "allstar" },
   { label: "Both", value: "both" },
 ];
 
@@ -89,6 +90,10 @@ export default function Home() {
         `http://${apiUrl}/get-records?mode=${mode}&seasonId=${season}`
       );
     } else if (mode === "doubles") {
+      data = axios.get(
+        `http://${apiUrl}/get-records-p?mode=${mode}&seasonId=${season}`
+      );
+    } else if (mode === "allstar") {
       data = axios.get(
         `http://${apiUrl}/get-records-p?mode=${mode}&seasonId=${season}`
       );
