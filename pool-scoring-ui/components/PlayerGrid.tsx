@@ -26,6 +26,8 @@ import PlayerDetailsModal from "./PlayerDetailsModal";
 import { ArrowDownIcon, ArrowUpIcon } from "@chakra-ui/icons";
 import { SP } from "next/dist/shared/lib/utils";
 import FantasyModal from "./TournamentView";
+import axios from "axios";
+import { apiUrl } from "../utils/utils";
 
 interface NameGridProps {
   names: string[];
@@ -81,6 +83,7 @@ const NameGrid: React.FC<NameGridProps> = ({
   const columns = 7;
   const totalBoxesPerPage = names.length * columns;
   const [, forceUpdate] = useReducer((x: any) => x + 1, 0);
+  const [allStars, setAllStars] = useState<any>([]);
 
   useEffect(() => {
     let s: any = {};
@@ -89,6 +92,16 @@ const NameGrid: React.FC<NameGridProps> = ({
     }
 
     setPlayerGamesPlayed(s);
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const req = await axios.get(`http://${apiUrl}/getCurrentAllStars`);
+
+      setAllStars(req.data);
+    };
+
+    fetchData();
   }, []);
 
   const initialState = loadStateFromLocalStorage() || {
@@ -317,7 +330,13 @@ const NameGrid: React.FC<NameGridProps> = ({
               p={4}
               borderRadius="md"
               boxShadow="0 4px 8px 0 rgba(0,0,0,0.2)"
-              bg={isNameCell ? defaultBgColor : actionBgColor}
+              bg={
+                isNameCell
+                  ? allStars.includes(name)
+                    ? "yellow.500"
+                    : defaultBgColor
+                  : actionBgColor
+              }
               cursor={isNameCell ? "default" : "pointer"}
               onClick={() => {
                 if (!isGameStarted) {

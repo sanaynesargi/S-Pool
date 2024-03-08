@@ -2147,6 +2147,46 @@ app.get("/api/getSeasons", (_, res) => {
   });
 });
 
+app.get("/api/getCurrentAllStars", (_, res) => {
+  const sql = `SELECT id, seasonName FROM season_map`;
+
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      // Handle the error
+      res.status(500).send({ error: err.message });
+      return;
+    }
+
+    // Create an object with season names and their IDs
+    const seasons = rows.reduce((acc: any, row: any) => {
+      acc[row.id] = row.seasonName;
+      return acc;
+    }, {});
+
+    const keys = Object.keys(seasons as any);
+
+    // Send the response
+    const latest = keys[keys.length - 1];
+
+    const allStarSql = `SELECT playerName, allStarSeasons FROM awards`;
+
+    db.all(allStarSql, [], (_, rows: any) => {
+      let currentAllStars: any = [];
+
+      for (const row of rows) {
+        let seasons = row.allStarSeasons.split(",");
+
+        let currentAllStar = seasons.includes(latest);
+
+        if (currentAllStar) {
+          currentAllStars.push(row.playerName);
+        }
+      }
+      res.send(currentAllStars);
+    });
+  });
+});
+
 app.get("/api/getTags", async (req, res) => {
   const { mode } = req.query;
 

@@ -169,7 +169,7 @@ const SlideshowModal = ({
     };
 
     fetchData();
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     const scrollInterval = setInterval(() => {
