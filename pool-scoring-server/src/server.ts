@@ -6,6 +6,7 @@ import {
   getAveragePointsPerGame,
   getAveragePointsPerStroke,
   getAveragePointsPerTournament,
+  getTop3Tournaments,
 } from "./utils";
 
 const app = express();
@@ -2187,6 +2188,31 @@ app.get("/api/getCurrentAllStars", (_, res) => {
   });
 });
 
+app.get("/api/getCurrentSeason", (_, res) => {
+  const sql = `SELECT id, seasonName FROM season_map`;
+
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      // Handle the error
+      res.status(500).send({ error: err.message });
+      return;
+    }
+
+    // Create an object with season names and their IDs
+    const seasons = rows.reduce((acc: any, row: any) => {
+      acc[row.id] = row.seasonName;
+      return acc;
+    }, {});
+
+    const keys = Object.keys(seasons as any);
+
+    // Send the response
+    const latest = keys[keys.length - 1];
+
+    res.send({ latest });
+  });
+});
+
 app.get("/api/getTags", async (req, res) => {
   const { mode } = req.query;
 
@@ -2606,6 +2632,42 @@ app.get("/api/award_counts", (_, res) => {
     res.send(formatted);
   });
 });
+
+// app.get("/api/playerProfile", async (req, res) => {
+//   const player = "Aarav";
+
+//   const latestTournament =
+//     (await getNextTournamentId("player_actions", "singles")) - 1;
+//   const currentSeason = await findSeasonIdByTournament(
+//     latestTournament,
+//     "singles"
+//   );
+
+//   const ppgS = await getAveragePointsPerGame("singles", currentSeason, db);
+//   const pptS = await getAveragePointsPerTournament(
+//     "singles",
+//     currentSeason,
+//     db
+//   );
+//   const ppsS = await getAveragePointsPerStroke("doubles", currentSeason, db);
+
+//   const ppgD = await getAveragePointsPerGame("doubles", currentSeason, db);
+//   const pptD = await getAveragePointsPerTournament(
+//     "doubles",
+//     currentSeason,
+//     db
+//   );
+//   const ppsD = await getAveragePointsPerStroke("doubles", currentSeason, db);
+
+//   const tournamentScores = await getTop3Tournaments(
+//     "singles",
+//     currentSeason,
+//     db
+//   );
+//   console.log(tournamentScores);
+
+//   res.send(tournamentScores);
+// });
 
 /*  _______________________ FANTASY GAME ENDPOINTS _________________________ */
 

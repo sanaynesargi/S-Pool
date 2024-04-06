@@ -149,6 +149,7 @@ const Home: React.FC = () => {
               playerActionCounts={playerActionCounts}
               setPlayerActionCounts={setPlayerActionCounts}
               updateGameCountsCallback={(e: any) => setPlayerGameCounts(e)}
+              mode={!mode ? "doubles" : "singles"}
             />
           )}
         </Box>

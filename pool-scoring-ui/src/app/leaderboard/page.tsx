@@ -9,7 +9,7 @@ import {
   Text,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { ArrowBackIcon } from "@chakra-ui/icons";
+import { ArrowBackIcon, ArrowForwardIcon } from "@chakra-ui/icons";
 import { useRouter } from "next/navigation";
 
 interface LeaderboardEntry {
@@ -80,6 +80,15 @@ const Leaderboard: React.FC = () => {
         <Text fontWeight="bold">Rank</Text>
         <Text fontWeight="bold">Player</Text>
         <Text fontWeight="bold">Score</Text>
+        <Button
+          leftIcon={<ArrowForwardIcon />}
+          colorScheme="yellow"
+          onClick={() => {
+            router.push("/stats/lines");
+          }}
+        >
+          Bet...
+        </Button>
       </Flex>
 
       {/* Table Rows */}

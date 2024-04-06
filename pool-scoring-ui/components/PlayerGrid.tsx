@@ -18,6 +18,7 @@ import {
   NumberInputField,
   NumberInputStepper,
   useDisclosure,
+  Divider,
 } from "@chakra-ui/react";
 import ActionModal, { ActionType } from "./ActionModal";
 import MatchupPage from "./MatchupCreator";
@@ -38,6 +39,7 @@ interface NameGridProps {
   setStandings: any;
   updateGameCountsCallback: any;
   isGameStarted: boolean;
+  mode: string;
 }
 
 interface Action {
@@ -78,12 +80,28 @@ const NameGrid: React.FC<NameGridProps> = ({
   setStandings,
   updateGameCountsCallback,
   isGameStarted,
+  mode,
 }) => {
   const [playerGamesPlayed, setPlayerGamesPlayed] = useState<any>({});
   const columns = 7;
   const totalBoxesPerPage = names.length * columns;
   const [, forceUpdate] = useReducer((x: any) => x + 1, 0);
   const [allStars, setAllStars] = useState<any>([]);
+  const [selectedSeason, setSelectedSeason] = useState("");
+
+  // average stores
+  const [singlesGameData, setSinglesGameData] = useState<any>({});
+  const [doublesGameData, setDoublesGameData] = useState<any>({});
+
+  const [singlesTournamentData, setSinglesTournamentGameData] = useState<any>(
+    {}
+  );
+  const [doublesTournamentData, setDoublesTournamentGameData] = useState<any>(
+    {}
+  );
+
+  const [pptSinglesData, setPPTSinglesData] = useState<any>({});
+  const [pptDoublesData, setPPTDoublesData] = useState<any>({});
 
   useEffect(() => {
     let s: any = {};
@@ -103,6 +121,80 @@ const NameGrid: React.FC<NameGridProps> = ({
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const req = await axios.get(`http://${apiUrl}/getCurrentSeason`);
+
+      setSelectedSeason(req.data.latest);
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const gamesResS = await axios.get(
+        `http://${apiUrl}/average-points-per-tournament-game`,
+        { params: { mode: "singles", seasonId: selectedSeason ?? null } }
+      );
+
+      const gamesResD = await axios.get(
+        `http://${apiUrl}/average-points-per-tournament-game`,
+        { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
+      );
+
+      const tournamentsResS = await axios.get(
+        `http://${apiUrl}/average-points-per-game`,
+        { params: { mode: "singles", seasonId: selectedSeason ?? null } }
+      );
+
+      const tournamentsResD = await axios.get(
+        `http://${apiUrl}/average-points-per-game`,
+        { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
+      );
+
+      const pptSingles = await axios.get(`http://${apiUrl}/player-ppt`, {
+        params: { mode: "singles", seasonId: selectedSeason ?? null },
+      });
+      const pptDoubles = await axios.get(`http://${apiUrl}/player-ppt`, {
+        params: { mode: "doubles", seasonId: selectedSeason ?? null },
+      });
+
+      // Sort the data
+      const sortData = (data: any) => {
+        // Convert the object into an array of [key, value] pairs
+        let items = Object.entries(data).map(([name, number]) => ({
+          name,
+          number,
+        }));
+
+        // Sort the array based on the float value of the number property
+        items.sort(
+          (a: any, b: any) => parseFloat(b.number) - parseFloat(a.number)
+        );
+
+        let newObj: any = {};
+
+        for (const obj of items) {
+          newObj[obj.name] = obj.number;
+        }
+
+        return newObj;
+      };
+
+      setSinglesGameData(sortData(gamesResS.data) as any);
+      setDoublesGameData(sortData(gamesResD.data) as any);
+
+      setSinglesTournamentGameData(sortData(tournamentsResS.data) as any);
+      setDoublesTournamentGameData(sortData(tournamentsResD.data) as any);
+
+      setPPTSinglesData(sortData(pptSingles.data) as any);
+      setPPTDoublesData(sortData(pptDoubles.data) as any);
+    };
+
+    fetchData();
+  }, [selectedSeason]);
 
   const initialState = loadStateFromLocalStorage() || {
     actions: [Array(totalBoxesPerPage).fill(null)],
@@ -284,6 +376,58 @@ const NameGrid: React.FC<NameGridProps> = ({
     return result;
   }
 
+  const getTileColor = (value: number, type: string) => {
+    switch (type) {
+      case "ppt": {
+        return value >= 20
+          ? "green"
+          : value >= 15
+          ? "orange"
+          : value >= 10
+          ? "yellow"
+          : "red";
+      }
+      case "ppg": {
+        if (mode == "singles") {
+          return value >= 5
+            ? "green"
+            : value >= 4
+            ? "orange"
+            : value >= 3
+            ? "yellow"
+            : "red";
+        } else {
+          return value >= 4
+            ? "green"
+            : value >= 3
+            ? "orange"
+            : value >= 2
+            ? "yellow"
+            : "red";
+        }
+      }
+      case "pps": {
+        if (mode == "singles") {
+          return value >= 0.75
+            ? "green"
+            : value >= 0.5
+            ? "orange"
+            : value >= 0.25
+            ? "yellow"
+            : "red";
+        } else {
+          return value >= 0.75
+            ? "green"
+            : value >= 0.5
+            ? "orange"
+            : value >= 0.25
+            ? "yellow"
+            : "red";
+        }
+      }
+    }
+  };
+
   const bgColor = "#1A202C";
   const actionBgColor = "#2D3748";
   const defaultBgColor = "#393D47";
@@ -359,9 +503,73 @@ const NameGrid: React.FC<NameGridProps> = ({
             >
               {isNameCell ? (
                 <Center>
-                  <Text fontSize="lg" fontWeight="bold">
-                    {name}
-                  </Text>
+                  <VStack>
+                    <Text fontSize="lg" fontWeight="bold">
+                      {name}
+                    </Text>
+                    <HStack bg="gray.700" p="15px" borderRadius="md">
+                      <VStack>
+                        <Button
+                          size="sm"
+                          colorScheme={getTileColor(
+                            mode == "singles"
+                              ? singlesGameData[name]
+                              : doublesGameData[name],
+                            "ppg"
+                          )}
+                        >
+                          {mode == "singles"
+                            ? singlesGameData[name] ?? "0.0"
+                            : doublesGameData[name] ?? "0.0"}
+                        </Button>
+                        <Text fontSize="xs" fontWeight="semibold">
+                          PPG
+                        </Text>
+                      </VStack>
+                      <VStack>
+                        <Button
+                          size="sm"
+                          colorScheme={getTileColor(
+                            mode == "singles"
+                              ? singlesTournamentData[name] ?? "0.0"
+                              : doublesTournamentData[name] ?? "0.0",
+                            "ppt"
+                          )}
+                        >
+                          {mode == "singles"
+                            ? singlesTournamentData[name] ?? "0.0"
+                            : doublesTournamentData[name] ?? "0.0"}
+                        </Button>
+                        <Text fontSize="xs" fontWeight="semibold">
+                          PPT
+                        </Text>
+                      </VStack>
+                      <VStack>
+                        <Button
+                          size="sm"
+                          colorScheme={getTileColor(
+                            mode == "singles"
+                              ? pptDoublesData[name] ?? "0.0"
+                              : pptDoublesData[name] ?? "0.0",
+                            "pps"
+                          )}
+                        >
+                          {mode == "singles"
+                            ? pptSinglesData[name] ?? "0.0"
+                            : pptDoublesData[name] ?? "0.0"}
+                        </Button>
+                        <Text fontSize="xs" fontWeight="semibold">
+                          PPS
+                        </Text>
+                      </VStack>
+                    </HStack>
+                  </VStack>
+
+                  <Divider
+                    borderColor="black"
+                    orientation="vertical"
+                    w="10px"
+                  />
                   <Box ml={4}>
                     <HStack justifyContent="space-evenly">
                       <Button
@@ -398,7 +606,7 @@ const NameGrid: React.FC<NameGridProps> = ({
                       </Button>
                     </HStack>
                     <Spacer w={4} h={4} />
-                    <HStack bgColor="gray.600" p={2} borderRadius="md">
+                    <HStack bgColor="gray.700" p={2} borderRadius="md">
                       <IconButton
                         icon={<ArrowUpIcon />}
                         size="sm"

@@ -168,3 +168,95 @@ export async function getAveragePointsPerStroke(
     });
   });
 }
+
+export async function getTournamentScores(mode: any, seasonId: any, db: any) {
+  const seasonFilter =
+    seasonId != "" && mode != "allstar"
+      ? `JOIN (SELECT ${
+          mode === "doubles"
+            ? "startDoublesId, endDoublesId"
+            : "startSinglesId, endSinglesId"
+        } 
+         FROM season_map WHERE id = ${seasonId}) sm 
+     ON tournamentId BETWEEN sm.${
+       mode === "doubles"
+         ? "startDoublesId AND sm.endDoublesId"
+         : "startSinglesId AND sm.endSinglesId"
+     }`
+      : "";
+
+  return new Promise((resolve, _) => {
+    db.all(
+      `SELECT pa.* FROM player_actions pa 
+   ${seasonFilter}
+   WHERE pa.mode = ?`,
+      [mode],
+      (err: any, actions: any) => {
+        if (err) {
+          return;
+        }
+
+        const summaryMap = new Map();
+
+        if (actions.length === 0) {
+          return [];
+        }
+
+        actions.forEach((action: any) => {
+          const playerTournamentKey = `${action.playerName}-${action.tournamentId}`;
+          if (!summaryMap.has(playerTournamentKey)) {
+            summaryMap.set(playerTournamentKey, {
+              playerName: action.playerName,
+              tournamentId: action.tournamentId,
+              totalFpts: 0,
+            });
+          }
+          const playerSummary = summaryMap.get(playerTournamentKey);
+          const actionFpts = action.actionCount * action.actionValue;
+          playerSummary.totalFpts += actionFpts;
+        });
+
+        resolve(Object.fromEntries(summaryMap));
+      }
+    );
+  });
+}
+
+export async function getTop3Tournaments(mode: any, seasonId: any, db: any) {
+  const scores: any = await getTournamentScores(mode, seasonId, db);
+
+  let tournaments: any = {};
+  let newtournaments: any = {};
+
+  for (let b of Object.values(scores as any)) {
+    let blob: any = b;
+
+    if (!tournaments[blob.playerName]) {
+      tournaments[blob.playerName] = [
+        { id: blob.tournamentId, score: blob.totalFpts },
+      ];
+    } else {
+      tournaments[blob.playerName].push({
+        id: blob.tournamentId,
+        score: blob.totalFpts,
+      });
+    }
+  }
+
+  for (const player in tournaments) {
+    tournaments[player].sort((a: any, b: any) => b.score - a.score); // Sorting in descending order
+  }
+
+  for (const player in tournaments) {
+    newtournaments[player] = [];
+    for (let i = 0; i < 3; i++) {
+      if (!tournaments[player][i]) {
+        continue;
+      }
+
+      newtournaments[player].push(tournaments[player][i]);
+    }
+  }
+
+  return newtournaments;
+}
