@@ -380,6 +380,18 @@ function convertDataToPlayerActions(data: any, mode: string): PlayerAction[] {
   return playerActions;
 }
 
+const getAvg = (arr: any[]) => {
+  let sum = 0;
+  let count = 0;
+
+  for (const num of arr) {
+    sum += num;
+    count += 1;
+  }
+
+  return sum / count;
+};
+
 const scoreMap: { [a: string]: number } = {
   "No Result": 0,
   Scratch: -0.5,
@@ -2352,13 +2364,14 @@ app.get("/api/getSeasonProgress", async (_, res) => {
     "player_actions",
     "singles"
   );
+
   const nextTournamentD = await getNextTournamentId(
     "player_actions",
     "doubles"
   );
 
   const currentSeasonId = await findSeasonIdByTournament(
-    nextTournamentS,
+    nextTournamentS - 1,
     "singles"
   );
 
@@ -2366,7 +2379,7 @@ app.get("/api/getSeasonProgress", async (_, res) => {
     SELECT startSinglesId, endSinglesId, startDoublesId, endDoublesId 
     FROM season_map 
     WHERE id = ?;
-`;
+  `;
 
   // Execute the query
   db.get(query, [currentSeasonId], (err, row: any) => {
@@ -2630,6 +2643,196 @@ app.get("/api/award_counts", (_, res) => {
     });
 
     res.send(formatted);
+  });
+});
+
+app.get("/api/improvement", async (req, res) => {
+  const sql = `SELECT id, seasonName FROM season_map`;
+
+  db.all(sql, [], async (err, rows) => {
+    if (err) {
+      // Handle the error
+      res.status(500).send({ error: err.message });
+      return;
+    }
+
+    // Create an object with season names and their IDs
+    const seasons: any = rows.reduce((acc: any, row: any) => {
+      acc[row.id] = row.seasonName;
+      return acc;
+    }, {});
+
+    // Send the response
+    const modes = ["singles", "doubles"];
+    const improvementData: any = {};
+
+    const season_ids = Object.keys(seasons);
+    let latest_season_id = 0;
+
+    for (const mode of modes) {
+      for (const id of season_ids) {
+        const ppg: any = await getAveragePointsPerGame(mode, id, db);
+        const ppt: any = await getAveragePointsPerTournament(mode, id, db);
+        const pps: any = await getAveragePointsPerStroke(mode, id, db);
+
+        if (Object.keys(ppg).length == 0) {
+          latest_season_id = parseInt(id) - 1;
+        }
+
+        for (const [player, value] of Object.entries(ppg)) {
+          const points = parseFloat(value as any);
+
+          if (!Object.keys(improvementData).includes(player)) {
+            improvementData[player] = [
+              [mode, "ppg", parseInt(id as any), points],
+            ];
+          } else {
+            improvementData[player].push([
+              mode,
+              "ppg",
+              parseInt(id as any),
+              points,
+            ]);
+          }
+        }
+
+        for (const [player, value] of Object.entries(ppt)) {
+          const points = parseFloat(value as any);
+          improvementData[player].push([
+            mode,
+            "ppt",
+            parseInt(id as any),
+            points,
+          ]);
+        }
+
+        for (const [player, value] of Object.entries(pps)) {
+          const points = parseFloat(value as any);
+          improvementData[player].push([
+            mode,
+            "pps",
+            parseInt(id as any),
+            points,
+          ]);
+        }
+      }
+    }
+
+    if (latest_season_id == 0) {
+      latest_season_id = parseInt(season_ids[season_ids.length - 1]);
+    }
+
+    if (latest_season_id != 1) {
+      // latest_season_improvement
+      const imp_org = latest_season_id - 1;
+      const imp_target = latest_season_id;
+
+      let org_ppg: any = {};
+      let org_ppt: any = {};
+      let org_pps: any = {};
+
+      let new_ppg: any = {};
+      let new_ppt: any = {};
+      let new_pps: any = {};
+
+      for (const [player, entry] of Object.entries(improvementData)) {
+        for (const e of entry) {
+          const id: any = parseInt(e[2]);
+          const stat = e[1];
+          const mode = e[0];
+
+          if (id != imp_org) {
+            continue;
+          }
+
+          if (stat == "ppg") {
+            org_ppg[player + " " + mode] = e[e.length - 1];
+          }
+          if (stat == "ppt") {
+            org_ppt[player + " " + mode] = e[e.length - 1];
+          }
+          if (stat == "pps") {
+            org_pps[player + " " + mode] = e[e.length - 1];
+          }
+        }
+      }
+
+      for (const [player, entry] of Object.entries(improvementData)) {
+        for (const e of entry) {
+          const id: any = parseInt(e[2]);
+          const stat = e[1];
+          const mode = e[0];
+
+          if (id != imp_target) {
+            continue;
+          }
+
+          if (stat == "ppg") {
+            new_ppg[player + " " + mode] = e[e.length - 1];
+          }
+          if (stat == "ppt") {
+            new_ppt[player + " " + mode] = e[e.length - 1];
+          }
+          if (stat == "pps") {
+            new_pps[player + " " + mode] = e[e.length - 1];
+          }
+        }
+      }
+
+      let ppg_imp = {};
+      let ppt_imp = {};
+      let pps_imp = {};
+
+      // calc improvement
+      for (const [player, value] of Object.entries(org_ppg)) {
+        if (!Object.keys(new_ppg).includes(player)) {
+          continue;
+        }
+
+        const a: any = value;
+        const b: any = new_ppg[player];
+        const perc = ((b - a) / a) * 100;
+
+        ppg_imp[player] = perc;
+      }
+
+      for (const [player, value] of Object.entries(org_ppt)) {
+        if (!Object.keys(new_ppg).includes(player)) {
+          continue;
+        }
+
+        const a: any = value;
+        const b: any = new_ppt[player];
+        const perc = ((b - a) / a) * 100;
+
+        ppt_imp[player] = perc;
+      }
+
+      for (const [player, value] of Object.entries(org_pps)) {
+        if (!Object.keys(new_pps).includes(player)) {
+          continue;
+        }
+
+        const a: any = value;
+        const b: any = new_pps[player];
+        const perc = ((b - a) / a) * 100;
+
+        pps_imp[player] = perc;
+      }
+
+      const avg_imp = {};
+
+      for (const [player, value] of Object.entries(ppg_imp)) {
+        const totalImp = [value, ppt_imp[player], pps_imp[player]];
+        const avg = getAvg(totalImp);
+
+        avg_imp[player] = avg;
+      }
+
+      res.send({ PPG: ppg_imp, PPT: ppt_imp, PPS: pps_imp, AVG: avg_imp });
+    } else {
+      res.send({ error: true, message: "Can't improve from 0" });
+    }
   });
 });
 

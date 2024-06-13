@@ -29,7 +29,7 @@ import {
   LabelList,
   Label,
 } from "recharts";
-import { apiUrl } from "../../../utils/utils";
+import { apiUrl } from "../../utils/utils";
 import { useRouter } from "next/navigation";
 import { ArrowBackIcon } from "@chakra-ui/icons";
 

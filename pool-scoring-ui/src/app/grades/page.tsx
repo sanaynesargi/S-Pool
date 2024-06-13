@@ -22,7 +22,7 @@ import {
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { apiUrl } from "../../../utils/utils";
+import { apiUrl } from "../../utils/utils";
 import { ArrowBackIcon, ArrowLeftIcon } from "@chakra-ui/icons";
 
 const PlayerStatsTable = ({ players }: any) => {

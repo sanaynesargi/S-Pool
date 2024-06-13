@@ -17,7 +17,7 @@ import {
 } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { ArrowBackIcon } from "@chakra-ui/icons";
-import { apiUrl } from "../../../utils/utils";
+import { apiUrl } from "../../utils/utils";
 
 function arrayUnique(array: any) {
   var a = array.concat();

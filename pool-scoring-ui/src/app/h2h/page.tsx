@@ -69,13 +69,12 @@ const HomePage: React.FC = () => {
             </Button>
             <Button
               size="lg"
-              colorScheme="red"
+              colorScheme="orange"
               width="200px"
               height="60px"
-              onClick={() => handleNavigation("/h2h/gamelog")}
-              isDisabled
+              onClick={() => handleNavigation("/h2h/improvement")}
             >
-              Player Game Log
+              Player Improvement
             </Button>
           </VStack>
         </HStack>
