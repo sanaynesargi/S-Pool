@@ -260,3 +260,167 @@ export async function getTop3Tournaments(mode: any, seasonId: any, db: any) {
 
   return newtournaments;
 }
+
+export const average = (array: any[]) =>
+  array.reduce((a, b) => a + b) / array.length;
+
+export async function getPlayerTournamentIds(mode: any, db: any) {
+  const sql = `SELECT id, playerName, tournamentId FROM player_actions WHERE mode = "${mode}" GROUP BY playerName, tournamentId`;
+
+  return new Promise((resolve, reject) => {
+    db.all(sql, [], (err: any, rows: any) => {
+      if (err) {
+        reject(err);
+      }
+
+      let retObj: any = {};
+
+      for (const entry of rows) {
+        if (!retObj[entry.playerName]) {
+          retObj[entry.playerName] = [entry.tournamentId];
+        } else {
+          retObj[entry.playerName].push(entry.tournamentId);
+        }
+      }
+
+      resolve(retObj);
+    });
+  });
+}
+
+const getPlayerMatchupInfo = (
+  player: string,
+  mode: string,
+  tournamentIds: number[],
+  db: any
+) => {
+  const sql = `SELECT id, player1, player2, winner, tournamentId FROM player_matchups WHERE (player1 = ? OR player2 = ?) AND mode = ? AND tournamentId BETWEEN ? AND ?;`;
+
+  return new Promise((resolve, reject) => {
+    db.all(
+      sql,
+      [
+        player,
+        player,
+        mode,
+        tournamentIds[0],
+        tournamentIds[tournamentIds.length - 1],
+      ],
+      (err: any, rows: any) => {
+        if (err) {
+          reject(err);
+        }
+
+        resolve(rows);
+      }
+    );
+  });
+};
+
+export async function getPlayerOpponents(
+  players: string[],
+  tournamentIds: number[],
+  mode: any,
+  db: any
+) {
+  const retObj: any = {};
+
+  for (const player of players) {
+    const rawInfo: any = await getPlayerMatchupInfo(
+      player,
+      mode,
+      tournamentIds,
+      db
+    );
+
+    const recordInfo: any = {};
+
+    for (const entry of rawInfo) {
+      let otherP = "";
+      let win = player == entry.winner;
+
+      if (entry.player1 == player) {
+        otherP = entry.player2;
+      } else {
+        otherP = entry.player1;
+      }
+
+      if (!recordInfo[otherP]) {
+        recordInfo[otherP] = { wins: 0, total: 0 };
+      }
+
+      recordInfo[otherP].wins += win ? 1 : 0;
+      recordInfo[otherP].total += 1;
+    }
+
+    retObj[player] = recordInfo;
+  }
+
+  return retObj;
+}
+
+export async function getAverageStandings(
+  tournamentIds: number[],
+  mode: any,
+  db: any
+) {
+  if (!mode) {
+    return;
+  }
+
+  const sql = `
+    SELECT playerName, standing
+    FROM player_standings WHERE mode = '${mode}'
+  `;
+
+  return new Promise((resolve, reject) =>
+    db.all(sql, [], async (err: any, rows: any) => {
+      if (err) {
+        reject(err);
+      } else {
+        let tInfo: any = {};
+
+        for (let obj of rows) {
+          const entry = tInfo[obj.playerName];
+
+          if (!entry) {
+            tInfo[obj.playerName] = [obj.standing];
+          } else {
+            tInfo[obj.playerName].push(obj.standing);
+          }
+        }
+
+        const selectedInfo: any = {};
+        const playerTIds: any = await getPlayerTournamentIds(mode, db);
+
+        for (const key of Object.keys(tInfo)) {
+          let playerIds = playerTIds[key];
+          let selectedStandings: any = [];
+
+          for (let i = 0; i < playerIds.length; i++) {
+            if (!tournamentIds.includes(playerIds[i])) {
+              continue;
+            }
+
+            selectedStandings.push(tInfo[key][i]);
+          }
+
+          if (selectedStandings.length > 0) {
+            selectedInfo[key] = average(selectedStandings);
+          }
+        }
+
+        resolve(selectedInfo);
+      }
+    })
+  );
+}
+
+export const range = (start: number, stop: number) => {
+  let out = [];
+  for (let i = start; i <= stop; i++) {
+    out.push(i);
+  }
+
+  return out;
+};
