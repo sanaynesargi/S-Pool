@@ -3,12 +3,19 @@ import express from "express";
 import sqlite3 from "sqlite3";
 import { v4 as uuidv4 } from "uuid";
 import {
+  average,
+  get8BallFinishRates,
   getAveragePointsPerGame,
   getAveragePointsPerStroke,
   getAveragePointsPerTournament,
   getAverageStandings,
+  getClutchGames,
   getPlayerOpponents,
+  getPlayerTournamentIds,
+  getRecordsDoublesPVJ,
+  getRecordsSinglesVJ,
   getTop3Tournaments,
+  getTournamentPerformances,
   range,
 } from "./utils";
 
@@ -313,7 +320,7 @@ function insertSeasonGamesPlayed(seasonId: any, gameData: any, mode: any) {
     const query = `
         INSERT INTO season_games (seasonId, playerName, gamesPlayed, mode)
         VALUES (?, ?, ?, ?)
-        ON CONFLICT(seasonId, playerName, mode) 
+        ON CONFLICT(seasonId, playerName, mode)
         DO UPDATE SET gamesPlayed = gamesPlayed + excluded.gamesPlayed;
     `;
 
@@ -526,7 +533,7 @@ const getRecords = (mode: string, seasonId: any) => {
     let playerNamesQuery = `
       SELECT DISTINCT player_name
       FROM (
-        SELECT player1 AS player_name FROM player_matchups WHERE mode = ? 
+        SELECT player1 AS player_name FROM player_matchups WHERE mode = ?
         UNION
         SELECT player2 AS player_name FROM player_matchups WHERE mode = ?
       )
@@ -647,7 +654,7 @@ const getRecords = (mode: string, seasonId: any) => {
 const getRecordsP = (mode: string, seasonId: any) => {
   return new Promise((resolve, reject) => {
     let sql = `
-      SELECT 
+      SELECT
         player1, player2, winner, ballsWon
       FROM player_matchups
       WHERE mode = ?
@@ -657,7 +664,7 @@ const getRecordsP = (mode: string, seasonId: any) => {
 
     if (seasonId) {
       sql = `
-        SELECT 
+        SELECT
           pm.player1, pm.player2, pm.winner, pm.ballsWon
         FROM player_matchups pm
         JOIN season_map sm ON pm.tournamentId >= sm.startDoublesId AND pm.tournamentId <= sm.endDoublesId
@@ -843,217 +850,11 @@ const spreadValuesToScale = (input: any) => {
   return result;
 };
 
-const getRecordsSinglesVJ = (tournamentIds: any) => {
-  const mode: any = "singles";
-  const seasonId: any = 1;
-
-  return new Promise((resolve, reject) => {
-    if (!mode) {
-      reject("Missing required parameter: mode");
-    }
-
-    let playerNamesQuery = `
-      SELECT DISTINCT player_name
-      FROM (
-        SELECT player1 AS player_name FROM player_matchups WHERE mode = ? 
-        UNION
-        SELECT player2 AS player_name FROM player_matchups WHERE mode = ?
-      )
-    `;
-
-    let queryParams = [mode, mode];
-
-    // Modify the query and parameters if seasonId is provided
-    if (seasonId != "" && mode != "allstar") {
-      let s = `
-          SELECT player1 AS player_name FROM player_matchups pm
-          INNER JOIN season_map sm ON pm.tournamentId BETWEEN ${
-            tournamentIds[0]
-          } AND ${tournamentIds[tournamentIds.length - 1]}
-          WHERE pm.mode = ? AND sm.id = ?
-          UNION
-          SELECT player2 AS player_name FROM player_matchups pm
-          INNER JOIN season_map sm ON pm.tournamentId BETWEEN ${
-            tournamentIds[0]
-          } AND ${tournamentIds[tournamentIds.length - 1]}
-          WHERE pm.mode = ? AND sm.id = ?`;
-
-      playerNamesQuery = `
-        SELECT DISTINCT player_name
-        FROM (
-          ${s}
-        )
-      `;
-      queryParams = [mode, seasonId, mode, seasonId];
-    }
-
-    db.all(playerNamesQuery, queryParams, async (err, playerRows) => {
-      if (err) {
-        reject("Error occurred: " + err.message);
-      }
-
-      const playerStatsPromises = playerRows.map((playerRow: any) => {
-        return new Promise((resolve, reject) => {
-          const player = playerRow.player_name;
-          let playerMatchupsQuery = `
-            SELECT COUNT(*) AS totalMatches,
-                   SUM(CASE WHEN winner = ? THEN 1 ELSE 0 END) AS wins,
-                   SUM(CASE WHEN winner = ? THEN ballsWon ELSE 0 END) AS totalBallsWon
-            FROM player_matchups pm
-            INNER JOIN season_map sm ON pm.tournamentId BETWEEN ${
-              tournamentIds[0]
-            } AND ${tournamentIds[tournamentIds.length - 1]}
-            WHERE (pm.player1 = ? OR pm.player2 = ?) AND pm.mode = ? ${
-              seasonId != "" && mode != "allstar" ? "AND sm.id = ?" : ""
-            }
-          `;
-
-          let matchParams = [player, player, player, player, mode];
-
-          if (seasonId != "" && mode != "allstar") {
-            matchParams.push(seasonId);
-          }
-
-          db.get(
-            playerMatchupsQuery,
-            matchParams,
-            (err, playerMatchupRow: any) => {
-              if (err) {
-                reject(err);
-              } else {
-                const totalMatches = playerMatchupRow.totalMatches || 0;
-                const wins = playerMatchupRow.wins || 0;
-                const totalBallsWon = playerMatchupRow.totalBallsWon || 0;
-                const winPercentage =
-                  totalMatches > 0
-                    ? ((wins / totalMatches) * 100).toFixed(2)
-                    : 0;
-                const avgBallsWon =
-                  wins > 0 ? (totalBallsWon / wins).toFixed(2) : 0;
-
-                resolve({
-                  player,
-                  totalMatches,
-                  wins,
-                  winPercentage,
-                  record: `${wins}-${totalMatches - wins}`,
-                  avgBallsWon,
-                });
-              }
-            }
-          );
-        });
-      });
-
-      Promise.all(playerStatsPromises)
-        .then((playerStats) => {
-          resolve(playerStats);
-        })
-        .catch((error) => {
-          reject("Error occurred: " + error.message);
-        });
-    });
-  });
-};
-
-const getRecordsDoublesPVJ = (tournamentIds: any) => {
-  const mode: any = "doubles";
-  const seasonId: any = 1;
-
-  return new Promise((resolve, reject) => {
-    let sql = `
-      SELECT 
-        player1, player2, winner, ballsWon
-      FROM player_matchups
-      WHERE mode = ?
-    `;
-
-    let params = [mode];
-
-    if (seasonId) {
-      sql = `
-        SELECT 
-          pm.player1, pm.player2, pm.winner, pm.ballsWon
-        FROM player_matchups pm
-        JOIN season_map sm ON pm.tournamentId >= ${
-          tournamentIds[0]
-        } AND pm.tournamentId <= ${tournamentIds[tournamentIds.length - 1]}
-        WHERE pm.mode = ? AND sm.id = ?
-      `;
-      params.push(seasonId);
-    }
-
-    console.log(sql);
-
-    db.all(sql, params, (err, rows) => {
-      if (err) {
-        reject("Error occurred: " + err.message);
-      }
-
-      let totalMatches = 0;
-      let playerStats: any[] = [];
-
-      console.log(rows);
-
-      // Initialize players' wins, ballsWon, etc.
-      const playerData: Record<string, any> = {};
-
-      rows.forEach((row: any) => {
-        const { player1, player2, winner, ballsWon } = row;
-
-        const players1 = player1.split(";");
-        const players2 = player2.split(";");
-        const winners = winner.split(";");
-
-        // Calculate statistics for each player
-        [...players1, ...players2].forEach((player) => {
-          if (!playerData[player]) {
-            playerData[player] = {
-              totalMatches: 0,
-              wins: 0,
-              ballsWon: 0,
-            };
-          }
-
-          playerData[player].totalMatches++;
-
-          if (winners.includes(player)) {
-            playerData[player].wins++;
-            playerData[player].ballsWon += ballsWon;
-          }
-        });
-
-        totalMatches++;
-      });
-
-      // Calculate win percentage and record for each player
-      Object.entries(playerData).forEach(([player, data]) => {
-        const { wins, totalMatches, ballsWon } = data;
-        const winPercentage =
-          totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(2) : 0;
-        const record = `${wins}-${totalMatches - wins}`;
-        const avgBallsWon = wins > 0 ? (ballsWon / wins).toFixed(2) : 0;
-
-        playerStats.push({
-          player,
-          totalMatches,
-          wins,
-          winPercentage,
-          record,
-          avgBallsWon,
-        });
-      });
-
-      resolve(playerStats);
-    });
-  });
-};
-
 const VIRAAJ_V = async (tournamentIds: number[], mode: string) => {
   const records: any =
     mode == "singles"
-      ? await getRecordsSinglesVJ(tournamentIds)
-      : await getRecordsDoublesPVJ(tournamentIds);
+      ? await getRecordsSinglesVJ(tournamentIds, db)
+      : await getRecordsDoublesPVJ(tournamentIds, db);
 
   let retObj: any = {};
 
@@ -1252,10 +1053,14 @@ const VIRAAJ_A = (tournamentIds: number[], mode: string) => {
 };
 
 const VIRAAJ_A2 = async (tournamentIds: number[], mode: string) => {
+  const pctAgainstWeight = 0.2;
+  const oppStandWeight = 0.35;
+  const oppWinPctWeight = 0.45;
+
   const records: any =
     mode == "singles"
-      ? await getRecordsSinglesVJ(tournamentIds)
-      : await getRecordsDoublesPVJ(tournamentIds);
+      ? await getRecordsSinglesVJ(tournamentIds, db)
+      : await getRecordsDoublesPVJ(tournamentIds, db);
 
   const avgStandings: any = await getAverageStandings(tournamentIds, mode, db);
 
@@ -1275,13 +1080,78 @@ const VIRAAJ_A2 = async (tournamentIds: number[], mode: string) => {
 
   for (const key of Object.keys(recordsTable)) {
     components[key] = {
-      winPct: recordsTable[key] / 10,
-      avgStanding: 10 - avgStandings[key],
+      winPct: recordsTable[key],
+      avgStanding: avgStandings[key],
     };
   }
 
-  console.log(components);
-  console.log(oppResults);
+  const diffIndex: any = {};
+
+  for (const player of Object.keys(oppResults)) {
+    const opps: any = oppResults[player];
+    const diffs: any = [];
+
+    for (const opp of Object.keys(opps)) {
+      // normalize
+      const pctAgainst = (1 - opps[opp].wins / opps[opp].total) * 10;
+      const oppStand =
+        mode == "doubles" ? 10 : 10 - components[opp].avgStanding;
+      const oppWinPct = components[opp].winPct / 10;
+
+      const diff =
+        pctAgainst * pctAgainstWeight +
+        oppStand * oppStandWeight +
+        oppWinPct * oppWinPctWeight;
+
+      diffs.push(diff);
+    }
+
+    if (diffs.length > 0) {
+      const maxAddBack = 10 - average(diffs);
+      const dampenedMaxAddBack = 0.6 * maxAddBack;
+      const addBack = (recordsTable[player] / 100) * dampenedMaxAddBack;
+      const newDiff = average(diffs) + addBack;
+      diffIndex[player] = newDiff;
+    }
+  }
+
+  return diffIndex;
+};
+
+const VIRAAJ_J = async (tournamentIds: number[], mode: string) => {
+  const clutchGames: any = await getClutchGames(tournamentIds, mode, db);
+  const eightBallFinishRates = await get8BallFinishRates(
+    tournamentIds,
+    mode,
+    db
+  );
+  const tournamentPerformanceAverages: any = await getTournamentPerformances(
+    tournamentIds,
+    mode,
+    db
+  );
+
+  let combinedStats: any = {};
+  let JMetric: any = {};
+
+  for (const key of Object.keys(eightBallFinishRates)) {
+    combinedStats[key] = {
+      perfAvg: (tournamentPerformanceAverages[key].avg / 35) * 10,
+      eightBallsIn: eightBallFinishRates[key]["8b"],
+      opposingEightBallsIn: 10 - eightBallFinishRates[key]["O8b"],
+      clutchPerc: mode == "doubles" ? 0 : clutchGames[key] / 10,
+    };
+
+    let entry = combinedStats[key];
+
+    JMetric[key] =
+      (mode == "doubles" ? 0 : 0.35) * entry.clutchPerc +
+      (mode == "doubles" ? 0.35 : 0.2) * entry.perfAvg +
+      (mode == "doubles" ? 0.4 : 0.25) * entry.eightBallsIn +
+      (mode == "doubles" ? 0.25 : 0.2) * entry.opposingEightBallsIn;
+  }
+
+  return JMetric;
 };
 
 app.post("/api/end-game", async (req, res) => {
@@ -1359,24 +1229,24 @@ app.get("/api/latest-tournament-points", (req, res) => {
   }
 
   const sql = `
-    SELECT 
+    SELECT
       pa.playerName,
       pa.actionValue * pa.actionCount AS points
-    FROM 
+    FROM
       player_actions pa
     JOIN (
-      SELECT 
-        playerName, 
+      SELECT
+        playerName,
         MAX(id) AS latestTournament
-      FROM 
+      FROM
         player_games
-      WHERE 
+      WHERE
         mode = '${query.mode}'
-      GROUP BY 
+      GROUP BY
         playerName
     ) pt ON pa.playerName = pt.playerName
-    WHERE 
-      pa.mode = '${query.mode}' 
+    WHERE
+      pa.mode = '${query.mode}'
       AND pa.tournamentDate = pt.latestTournament
   `;
 
@@ -1462,8 +1332,8 @@ app.get("/api/average-points-per-tournament-game", async (req, res) => {
           mode === "doubles"
             ? "startDoublesId, endDoublesId"
             : "startSinglesId, endSinglesId"
-        } 
-         FROM season_map WHERE id = ${seasonId}) sm 
+        }
+         FROM season_map WHERE id = ${seasonId}) sm
      ON pa.tournamentId BETWEEN sm.${
        mode === "doubles"
          ? "startDoublesId AND sm.endDoublesId"
@@ -1545,7 +1415,7 @@ app.get("/api/total-tournaments-played", (req, res) => {
   }
 
   const sql = `
-    SELECT playerName, gamesPlayed 
+    SELECT playerName, gamesPlayed
     FROM player_games WHERE mode = '${mode}'
     GROUP BY playerName;
   `;
@@ -1576,33 +1446,33 @@ app.get("/api/player-ppt", (req, res) => {
 
   const seasonFilter =
     seasonId != "" && mode != "allstar"
-      ? `AND tournamentId BETWEEN 
+      ? `AND tournamentId BETWEEN
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
        } FROM season_map WHERE id = ${seasonId})
-       AND 
+       AND
        (SELECT ${
          mode === "doubles" ? "endDoublesId" : "endSinglesId"
        } FROM season_map WHERE id = ${seasonId})`
       : "";
 
   const sql = `
-    SELECT 
-        playerName, 
-        SUM(actionCount) AS totalActionCount, 
+    SELECT
+        playerName,
+        SUM(actionCount) AS totalActionCount,
         SUM(actionValue * actionCount) AS totalActionValue,
-        CASE 
+        CASE
             WHEN SUM(actionCount) = 0 THEN 0
             ELSE SUM(actionValue * actionCount) / SUM(actionCount)
         END AS averageValuePerAction
-      FROM 
+      FROM
         player_actions
-      WHERE 
+      WHERE
         mode = '${mode}'
         ${seasonFilter}
-      GROUP BY 
+      GROUP BY
         playerName
-      ORDER BY 
+      ORDER BY
         averageValuePerAction DESC;
   `;
 
@@ -1633,33 +1503,33 @@ app.get("/api/player-tt", (req, res) => {
 
   const seasonFilter =
     seasonId != "" && mode != "allstar"
-      ? `AND tournamentId BETWEEN 
+      ? `AND tournamentId BETWEEN
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
        } FROM season_map WHERE id = ${seasonId})
-       AND 
+       AND
        (SELECT ${
          mode === "doubles" ? "endDoublesId" : "endSinglesId"
        } FROM season_map WHERE id = ${seasonId})`
       : "";
 
   const sql = `
-    SELECT 
-        playerName, 
-        SUM(actionCount) AS totalActionCount, 
+    SELECT
+        playerName,
+        SUM(actionCount) AS totalActionCount,
         SUM(actionValue * actionCount) AS totalActionValue,
-        CASE 
+        CASE
             WHEN SUM(actionCount) = 0 THEN 0
             ELSE SUM(actionValue * actionCount) * 1.0 / SUM(actionCount)
         END AS averageValuePerAction
-      FROM 
+      FROM
         player_actions
-      WHERE 
+      WHERE
         mode = '${mode}'
         ${seasonFilter}
-      GROUP BY 
+      GROUP BY
         playerName
-      ORDER BY 
+      ORDER BY
         averageValuePerAction DESC;
   `;
 
@@ -1688,30 +1558,30 @@ app.get("/api/player-actions-stats", (req, res) => {
   }
   const seasonFilter =
     seasonId != "" && mode != "allstar"
-      ? `AND tournamentId BETWEEN 
+      ? `AND tournamentId BETWEEN
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
        } FROM season_map WHERE id = ${seasonId})
-       AND 
+       AND
        (SELECT ${
          mode === "doubles" ? "endDoublesId" : "endSinglesId"
        } FROM season_map WHERE id = ${seasonId})`
       : "";
 
   const sql = `
-    SELECT 
-        playerName, 
+    SELECT
+        playerName,
         actionType,
-        SUM(actionCount) AS totalActionCount, 
+        SUM(actionCount) AS totalActionCount,
         SUM(actionValue * actionCount) AS totalActionValue
-    FROM 
+    FROM
         player_actions
-    WHERE 
+    WHERE
         mode = '${mode}'
         ${seasonFilter}
-    GROUP BY 
+    GROUP BY
         playerName, actionType
-    ORDER BY 
+    ORDER BY
         playerName, actionType;
   `;
 
@@ -1748,11 +1618,11 @@ app.get("/api/player-actions-stats-averages", (req, res) => {
 
   const seasonFilter =
     seasonId != "" && mode != "allstar"
-      ? `AND pa.tournamentId BETWEEN 
+      ? `AND pa.tournamentId BETWEEN
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
        } FROM season_map WHERE id = ${seasonId})
-       AND 
+       AND
        (SELECT ${
          mode === "doubles" ? "endDoublesId" : "endSinglesId"
        } FROM season_map WHERE id = ${seasonId})`
@@ -1761,24 +1631,24 @@ app.get("/api/player-actions-stats-averages", (req, res) => {
   const addedJoin = `LEFT JOIN season_games sg ON pa.playerName = sg.playerName AND pa.mode = sg.mode AND sg.seasonId = ${seasonId}`;
 
   const sql = `
-    SELECT 
-      pa.playerName, 
+    SELECT
+      pa.playerName,
       pa.actionType,
-      SUM(pa.actionCount) AS actionCount, 
+      SUM(pa.actionCount) AS actionCount,
       SUM(pa.actionValue * pa.actionCount) AS actionValue,
       pg.gamesPlayed
       ${seasonId != "" && mode != "allstar" ? ",sg.gamesPlayed as tid" : ""}
-    FROM 
+    FROM
       player_actions pa
-    JOIN 
+    JOIN
       player_tournament_games pg ON pa.playerName = pg.playerName AND pa.mode = pg.mode
     ${seasonId != "" && mode != "allstar" ? addedJoin : ""}
-    WHERE 
+    WHERE
       pa.mode = '${mode}'
       ${seasonFilter}
-    GROUP BY 
+    GROUP BY
       pa.playerName, pa.actionType, pg.gamesPlayed
-    ORDER BY 
+    ORDER BY
       pa.playerName, pa.actionType;
   `;
 
@@ -1821,34 +1691,34 @@ app.get("/api/player-actions-stats-average-tournaments", (req, res) => {
 
   const seasonFilter =
     seasonId != "" && mode != "allstar"
-      ? `AND pa.tournamentId BETWEEN 
+      ? `AND pa.tournamentId BETWEEN
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
        } FROM season_map WHERE id = ${seasonId})
-       AND 
+       AND
        (SELECT ${
          mode === "doubles" ? "endDoublesId" : "endSinglesId"
        } FROM season_map WHERE id = ${seasonId})`
       : "";
 
   const sql = `
-    SELECT 
-      pa.playerName, 
+    SELECT
+      pa.playerName,
       pa.actionType,
-      SUM(pa.actionCount) AS actionCount, 
+      SUM(pa.actionCount) AS actionCount,
       SUM(pa.actionValue * pa.actionCount) AS actionValue,
       pg.gamesPlayed,
       COUNT(DISTINCT(pa.tournamentId)) as tid
-    FROM 
+    FROM
       player_actions pa
-    JOIN 
+    JOIN
       player_games pg ON pa.playerName = pg.playerName AND pa.mode = pg.mode
-    WHERE 
+    WHERE
       pa.mode = '${mode}'
       ${seasonFilter}
-    GROUP BY 
+    GROUP BY
       pa.playerName, pa.actionType, pg.gamesPlayed
-    ORDER BY 
+    ORDER BY
       pa.playerName, pa.actionType;
   `;
 
@@ -1889,7 +1759,7 @@ app.get("/api/get-records", (req, res) => {
   let playerNamesQuery = `
     SELECT DISTINCT player_name
     FROM (
-      SELECT player1 AS player_name FROM player_matchups WHERE mode = ? 
+      SELECT player1 AS player_name FROM player_matchups WHERE mode = ?
       UNION
       SELECT player2 AS player_name FROM player_matchups WHERE mode = ?
     )
@@ -2006,7 +1876,7 @@ app.get("/api/get-records-p", (req, res) => {
   }
 
   let sql = `
-    SELECT 
+    SELECT
       player1, player2, winner, ballsWon
     FROM player_matchups
     WHERE mode = ?
@@ -2016,7 +1886,7 @@ app.get("/api/get-records-p", (req, res) => {
 
   if (seasonId) {
     sql = `
-      SELECT 
+      SELECT
         pm.player1, pm.player2, pm.winner, pm.ballsWon
       FROM player_matchups pm
       JOIN season_map sm ON pm.tournamentId >= sm.startDoublesId AND pm.tournamentId <= sm.endDoublesId
@@ -2134,7 +2004,7 @@ app.get("/api/matchups-p", (req, res) => {
   }
 
   const sql = `
-    SELECT 
+    SELECT
       player1, player2, winner, ballsWon
     FROM player_matchups
     WHERE mode = ?
@@ -2284,7 +2154,7 @@ app.get("/api/matchups", (req, res) => {
   }
 
   const headToHeadAllTimeQuery = `
-    SELECT 
+    SELECT
       COUNT(*) AS totalMatches,
       SUM(CASE WHEN winner LIKE ? THEN 1 ELSE 0 END) AS player1Wins,
       SUM(CASE WHEN winner LIKE ? THEN 1 ELSE 0 END) AS player2Wins,
@@ -2305,7 +2175,7 @@ app.get("/api/matchups", (req, res) => {
   `;
 
   const overallStatsQuery = () => `
-    SELECT 
+    SELECT
       COUNT(*) AS totalMatches,
       SUM(CASE WHEN winner = ? THEN 1 ELSE 0 END) AS wins,
       AVG(CASE WHEN winner = ? THEN ballsWon ELSE NULL END) AS avgBallsWon
@@ -2492,8 +2362,8 @@ app.get("/api/tournamentBestWorst/", (req, res) => {
           mode === "doubles"
             ? "startDoublesId, endDoublesId"
             : "startSinglesId, endSinglesId"
-        } 
-         FROM season_map WHERE id = ${seasonId}) sm 
+        }
+         FROM season_map WHERE id = ${seasonId}) sm
      ON tournamentId BETWEEN sm.${
        mode === "doubles"
          ? "startDoublesId AND sm.endDoublesId"
@@ -2502,7 +2372,7 @@ app.get("/api/tournamentBestWorst/", (req, res) => {
       : "";
 
   db.all(
-    `SELECT pa.* FROM player_actions pa 
+    `SELECT pa.* FROM player_actions pa
    ${seasonFilter}
    WHERE pa.mode = ?`,
     [mode],
@@ -2571,7 +2441,7 @@ app.get("/api/allPlayers/", (req, res) => {
   }
 
   const sql = `
-    SELECT 
+    SELECT
       DISTINCT(playerName)
     FROM player_actions
     WHERE mode = ?
@@ -2881,8 +2751,8 @@ app.get("/api/getSeasonProgress", async (_, res) => {
   );
 
   const query = `
-    SELECT startSinglesId, endSinglesId, startDoublesId, endDoublesId 
-    FROM season_map 
+    SELECT startSinglesId, endSinglesId, startDoublesId, endDoublesId
+    FROM season_map
     WHERE id = ?;
   `;
 
@@ -2952,11 +2822,11 @@ app.get("/api/grades", (req, res) => {
 
   const seasonFilter =
     seasonId != "" && mode != "allstar"
-      ? `AND pa.tournamentId BETWEEN 
+      ? `AND pa.tournamentId BETWEEN
        (SELECT ${
          mode === "doubles" ? "startDoublesId" : "startSinglesId"
        } FROM season_map WHERE id = ${seasonId})
-       AND 
+       AND
        (SELECT ${
          mode === "doubles" ? "endDoublesId" : "endSinglesId"
        } FROM season_map WHERE id = ${seasonId})`
@@ -2965,24 +2835,24 @@ app.get("/api/grades", (req, res) => {
   const addedJoin = `LEFT JOIN season_games sg ON pa.playerName = sg.playerName AND pa.mode = sg.mode AND sg.seasonId = ${seasonId}`;
 
   const sql = `
-    SELECT 
-      pa.playerName, 
+    SELECT
+      pa.playerName,
       pa.actionType,
-      SUM(pa.actionCount) AS actionCount, 
+      SUM(pa.actionCount) AS actionCount,
       SUM(pa.actionValue * pa.actionCount) AS actionValue,
       pg.gamesPlayed
       ${seasonId != "" && mode != "allstar" ? ",sg.gamesPlayed as tid" : ""}
-    FROM 
+    FROM
       player_actions pa
-    JOIN 
+    JOIN
       player_tournament_games pg ON pa.playerName = pg.playerName AND pa.mode = pg.mode
     ${seasonId != "" && mode != "allstar" ? addedJoin : ""}
-    WHERE 
+    WHERE
       pa.mode = '${mode}'
       ${seasonFilter}
-    GROUP BY 
+    GROUP BY
       pa.playerName, pa.actionType, pg.gamesPlayed
-    ORDER BY 
+    ORDER BY
       pa.playerName, pa.actionType;
   `;
 
@@ -3345,11 +3215,67 @@ app.get("/api/VIRAAJ_CALC", async (req, res) => {
   // V - Victory Rate - DONE
   // I - Infrequent Mistakes (Scratch, OBI, O8BI)  - DONE
   // R - Run Success (2BI, 3BI, 4+BI) - DONE
-  // A - Adjustment for Opponent Difficulty (Opp. Avg. Rank, Win %)
   // A - Aim % (TOTAL BALLS IN: 2BI -> 2, 3BI ->, 4+BI- > 4 / TOTAL_BALLS_IN + NR + SCRATCH + O8BI + OBI etc) - DONE
+  // A - Adjustment for Opponent Difficulty (Opp. Avg. Rank, Win %)
   // J - Judgement Under Pressure (clutch -> avg 8BI, avg Tournament Rank, avg. Tournament Score)
 
-  console.log(await VIRAAJ_A2(range(9, 15), "singles"));
+  let r = range(0, 16);
+  let mode = "doubles";
+
+  const VW = 0.2;
+  const IW = 0.2;
+  const RW = 0.15;
+  const AW = 0.2;
+  const A2W = 0.12;
+  const JW = 0.13;
+
+  let V: any = await VIRAAJ_V(r, mode);
+  let I: any = await VIRAAJ_I(r, mode);
+  let R: any = await VIRAAJ_R(r, mode);
+  let A: any = await VIRAAJ_A(r, mode);
+  let A2: any = await VIRAAJ_A2(r, mode);
+  let J: any = await VIRAAJ_J(r, mode);
+
+  let totalMetric: any = {};
+  let finalScores: any = {};
+  const tp: any = await getPlayerTournamentIds(mode, db);
+
+  for (const key of Object.keys(V)) {
+    if (!tp[key] || tp[key].length < 3) {
+      continue;
+    }
+
+    try {
+      totalMetric[key] = {
+        V: V[key],
+        I: I[key][0],
+        R: R[key][0],
+        A: A[key][0],
+        A2: A2[key],
+        J: J[key],
+      };
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  for (const key of Object.keys(totalMetric)) {
+    let e = totalMetric[key];
+    finalScores[key] = e;
+    finalScores[key].finalVJ =
+      VW * e.V + IW * e.I + RW * e.R + AW * e.A + A2W * e.A2 + JW * e.J;
+  }
+
+  // Convert object to array of entries
+  const entries = Object.entries(finalScores);
+
+  // Sort entries based on the first element of each array in descending order
+  entries.sort((a: any, b: any) => b[1].finalVJ - a[1].finalVJ);
+
+  // Convert back to an object (if necessary)
+  const sortedData = Object.fromEntries(entries);
+
+  console.log(sortedData);
 
   res.send("yay");
 });
