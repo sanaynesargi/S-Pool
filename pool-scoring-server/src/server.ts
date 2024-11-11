@@ -3219,8 +3219,15 @@ app.get("/api/VIRAAJ_CALC", async (req, res) => {
   // A - Adjustment for Opponent Difficulty (Opp. Avg. Rank, Win %)
   // J - Judgement Under Pressure (clutch -> avg 8BI, avg Tournament Rank, avg. Tournament Score)
 
-  let r = range(0, 16);
-  let mode = "doubles";
+  if (!req.query.mode || !req.query.startId || !req.query.stopId) {
+    return res.send({ error: "Invalid Request" });
+  }
+
+  let r = range(
+    parseInt(req.query.startId as any),
+    parseInt(req.query.stopId as any)
+  );
+  let mode: any = req.query.mode;
 
   const VW = 0.2;
   const IW = 0.2;
@@ -3229,12 +3236,12 @@ app.get("/api/VIRAAJ_CALC", async (req, res) => {
   const A2W = 0.12;
   const JW = 0.13;
 
-  let V: any = await VIRAAJ_V(r, mode);
-  let I: any = await VIRAAJ_I(r, mode);
-  let R: any = await VIRAAJ_R(r, mode);
-  let A: any = await VIRAAJ_A(r, mode);
-  let A2: any = await VIRAAJ_A2(r, mode);
-  let J: any = await VIRAAJ_J(r, mode);
+  let V: any = (await VIRAAJ_V(r, mode)) ?? 0;
+  let I: any = (await VIRAAJ_I(r, mode)) ?? 0;
+  let R: any = (await VIRAAJ_R(r, mode)) ?? 0;
+  let A: any = (await VIRAAJ_A(r, mode)) ?? 0;
+  let A2: any = (await VIRAAJ_A2(r, mode)) ?? 0;
+  let J: any = (await VIRAAJ_J(r, mode)) ?? 0;
 
   let totalMetric: any = {};
   let finalScores: any = {};
@@ -3247,11 +3254,11 @@ app.get("/api/VIRAAJ_CALC", async (req, res) => {
 
     try {
       totalMetric[key] = {
-        V: V[key],
-        I: I[key][0],
-        R: R[key][0],
-        A: A[key][0],
-        A2: A2[key],
+        V: V[key] ?? 0,
+        I: I[key][0] ?? 0,
+        R: R[key][0] ?? 0,
+        A: A[key][0] ?? 0,
+        A2: A2[key] ?? 0,
         J: J[key],
       };
     } catch (e) {
@@ -3275,9 +3282,7 @@ app.get("/api/VIRAAJ_CALC", async (req, res) => {
   // Convert back to an object (if necessary)
   const sortedData = Object.fromEntries(entries);
 
-  console.log(sortedData);
-
-  res.send("yay");
+  res.send(sortedData);
 });
 
 app.listen(port, () => {

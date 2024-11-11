@@ -93,7 +93,7 @@ function consolidateActions(actions: any) {
   return Object.values(reorderObject(consolidated));
 }
 
-const PlayerStats = ({ playerName, totalFpts, actions }: any) => {
+const PlayerStats = ({ playerName, totalFpts, actions, rating }: any) => {
   return (
     <Box
       borderWidth="1px"
@@ -107,7 +107,9 @@ const PlayerStats = ({ playerName, totalFpts, actions }: any) => {
     >
       <VStack align="stretch">
         <HStack justifyContent="space-between">
-          <Text fontWeight="bold">{playerName}</Text>
+          <Text fontWeight="bold">
+            {playerName} ({rating})
+          </Text>
           <Text
             padding="8px"
             bg="blackAlpha.500"
@@ -290,6 +292,8 @@ const PlayerStatsComponent = () => {
 
   const router = useRouter();
 
+  const [ratings, setRatings] = useState<any>({});
+
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -430,6 +434,35 @@ const PlayerStatsComponent = () => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (!currentTournament) {
+      return;
+    }
+
+    const fetchRtg = async () => {
+      try {
+        const response = await fetch(
+          `http://${apiUrl}/VIRAAJ_CALC?mode=${
+            mode == 0 ? "singles" : mode == 1 ? "doubles" : "allstar"
+          }&startId=${currentTournament}&stopId=${currentTournament}`
+        );
+
+        setRatings(await response.json());
+      } catch (error: any) {
+        setError(error.message);
+        toast({
+          title: "Error fetching data.",
+          description: error.message,
+          status: "error",
+          duration: 9000,
+          isClosable: true,
+        });
+      }
+    };
+
+    fetchRtg();
+  }, [currentTournament]);
 
   const handleTournamentChange = (newId: any) => {
     setCurrentTournament(newId);
@@ -592,7 +625,13 @@ const PlayerStatsComponent = () => {
             <TabPanel>
               <VStack>
                 {sortedCurrentData.map((player: any) => (
-                  <PlayerStats key={player.playerName} {...player} />
+                  <PlayerStats
+                    key={player.playerName}
+                    {...player}
+                    rating={
+                      ratings[player.playerName]?.finalVJ.toFixed(2) ?? "Unr"
+                    }
+                  />
                 ))}
               </VStack>
             </TabPanel>
