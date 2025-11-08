@@ -5,5 +5,3 @@ npm-debug.log
 .env
 *.md
 .DS_Store
-mydatabase.db
-fantasyDB.db
