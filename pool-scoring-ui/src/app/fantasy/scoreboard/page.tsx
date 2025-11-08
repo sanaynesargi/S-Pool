@@ -29,7 +29,7 @@ const MatchupPage = () => {
     const leagueId = rosterData ? rosterData.leagueId : null;
 
     if (leagueId) {
-      fetch(`http://${apiUrl}/fantasy/getMatchups?leagueId=${leagueId}`) // Ensure the endpoint is correct
+      fetch(`${apiUrl}/fantasy/getMatchups?leagueId=${leagueId}`) // Ensure the endpoint is correct
         .then((response) => response.json())
         .then((data) => {
           setMatchups(data);

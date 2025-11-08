@@ -57,7 +57,7 @@ const LineupPage = () => {
   ) => {
     try {
       const response = await fetch(
-        `http://${apiUrl}/fantasy/checkPlayerInRoster?playerId=${playerId}&leagueId=${leagueId}`
+        `${apiUrl}/fantasy/checkPlayerInRoster?playerId=${playerId}&leagueId=${leagueId}`
       );
       const data = await response.json();
 
@@ -81,7 +81,7 @@ const LineupPage = () => {
   const [, forceUpdate] = useReducer((x: any) => x + 1, 0);
   const getMatchup = async (leagueId: string, playerId: string) => {
     const response = await fetch(
-      `http://${apiUrl}/fantasy/getCurrentMatchup?leagueId=${leagueId}&playerId=${playerId}`
+      `${apiUrl}/fantasy/getCurrentMatchup?leagueId=${leagueId}&playerId=${playerId}`
     );
     const data = await response.json();
 
@@ -107,7 +107,7 @@ const LineupPage = () => {
     }
 
     try {
-      const response = await fetch(`http://${apiUrl}/fantasy/getPlayerStats`, {
+      const response = await fetch(`${apiUrl}/fantasy/getPlayerStats`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

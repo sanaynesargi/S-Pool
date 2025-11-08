@@ -50,7 +50,7 @@ export default function Home() {
   useEffect(() => {
     // Fetch the list of seasons
     axios
-      .get(`http://${apiUrl}/getSeasons`)
+      .get(`${apiUrl}/getSeasons`)
       .then((response) => {
         let newArr = [];
 
@@ -87,19 +87,19 @@ export default function Home() {
 
     if (mode === "singles") {
       data = axios.get(
-        `http://${apiUrl}/get-records?mode=${mode}&seasonId=${season}`
+        `${apiUrl}/get-records?mode=${mode}&seasonId=${season}`
       );
     } else if (mode === "doubles") {
       data = axios.get(
-        `http://${apiUrl}/get-records-p?mode=${mode}&seasonId=${season}`
+        `${apiUrl}/get-records-p?mode=${mode}&seasonId=${season}`
       );
     } else if (mode === "allstar") {
       data = axios.get(
-        `http://${apiUrl}/get-records-p?mode=${mode}&seasonId=${season}`
+        `${apiUrl}/get-records-p?mode=${mode}&seasonId=${season}`
       );
     } else {
       data = axios.get(
-        `http://${apiUrl}/get-combined-records?seasonId=${season}`
+        `${apiUrl}/get-combined-records?seasonId=${season}`
       );
     }
 

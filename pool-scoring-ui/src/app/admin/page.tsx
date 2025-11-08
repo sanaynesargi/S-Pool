@@ -29,7 +29,7 @@ const AdminSeasonEntry: React.FC = () => {
     event.preventDefault();
 
     try {
-      const response = await fetch(`http://${apiUrl}/addSeason`, {
+      const response = await fetch(`${apiUrl}/addSeason`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,7 +83,7 @@ const AdminSeasonEntry: React.FC = () => {
     event.preventDefault();
 
     try {
-      const response = await fetch(`http://${apiUrl}/awards`, {
+      const response = await fetch(`${apiUrl}/awards`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -114,7 +114,7 @@ const NameGrid: React.FC<NameGridProps> = ({
 
   useEffect(() => {
     const fetchData = async () => {
-      const req = await axios.get(`http://${apiUrl}/getCurrentAllStars`);
+      const req = await axios.get(`${apiUrl}/getCurrentAllStars`);
 
       setAllStars(req.data);
     };
@@ -124,7 +124,7 @@ const NameGrid: React.FC<NameGridProps> = ({
 
   useEffect(() => {
     const fetchData = async () => {
-      const req = await axios.get(`http://${apiUrl}/getCurrentSeason`);
+      const req = await axios.get(`${apiUrl}/getCurrentSeason`);
 
       setSelectedSeason(req.data.latest);
     };
@@ -135,29 +135,29 @@ const NameGrid: React.FC<NameGridProps> = ({
   useEffect(() => {
     const fetchData = async () => {
       const gamesResS = await axios.get(
-        `http://${apiUrl}/average-points-per-tournament-game`,
+        `${apiUrl}/average-points-per-tournament-game`,
         { params: { mode: "singles", seasonId: selectedSeason ?? null } }
       );
 
       const gamesResD = await axios.get(
-        `http://${apiUrl}/average-points-per-tournament-game`,
+        `${apiUrl}/average-points-per-tournament-game`,
         { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
       );
 
       const tournamentsResS = await axios.get(
-        `http://${apiUrl}/average-points-per-game`,
+        `${apiUrl}/average-points-per-game`,
         { params: { mode: "singles", seasonId: selectedSeason ?? null } }
       );
 
       const tournamentsResD = await axios.get(
-        `http://${apiUrl}/average-points-per-game`,
+        `${apiUrl}/average-points-per-game`,
         { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
       );
 
-      const pptSingles = await axios.get(`http://${apiUrl}/player-ppt`, {
+      const pptSingles = await axios.get(`${apiUrl}/player-ppt`, {
         params: { mode: "singles", seasonId: selectedSeason ?? null },
       });
-      const pptDoubles = await axios.get(`http://${apiUrl}/player-ppt`, {
+      const pptDoubles = await axios.get(`${apiUrl}/player-ppt`, {
         params: { mode: "doubles", seasonId: selectedSeason ?? null },
       });
 

@@ -62,26 +62,26 @@ const MatchupLookup = () => {
 
       try {
         const pointsPerGameRes = await axios.get(
-          `http://${apiUrl}/average-points-per-game`,
+          `${apiUrl}/average-points-per-game`,
           { params: { mode, seasonId } }
         );
         const pointsPerTournamentRes = await axios.get(
-          `http://${apiUrl}/average-points-per-tournament-game`,
+          `${apiUrl}/average-points-per-tournament-game`,
           { params: { mode, seasonId } }
         );
 
         const totalTournamentPlayedRes = await axios.get(
-          `http://${apiUrl}/total-tournaments-played`,
+          `${apiUrl}/total-tournaments-played`,
           { params: { mode, seasonId } }
         );
 
         const totalGamesRes = await axios.get(
-          `http://${apiUrl}/total-games-played`,
+          `${apiUrl}/total-games-played`,
           { params: { mode, seasonId } }
         );
 
         const pointsPeStrokeRes = await axios.get(
-          `http://${apiUrl}/player-ppt`,
+          `${apiUrl}/player-ppt`,
           {
             params: { mode, seasonId },
           }
@@ -171,7 +171,7 @@ const MatchupLookup = () => {
     }
 
     try {
-      const response = await axios.get(`http://${apiUrl}${endpoint}`, {
+      const response = await axios.get(`${apiUrl}${endpoint}`, {
         params: {
           player1: capitalizeString(player1),
           player2: capitalizeString(player2),

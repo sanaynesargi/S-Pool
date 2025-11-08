@@ -10,7 +10,7 @@ const AllStars: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(`http://${apiUrl}/award_counts`);
+        const response = await axios.get(`${apiUrl}/award_counts`);
         setAwardCounts(response.data);
         setLoading(false);
       } catch (error) {

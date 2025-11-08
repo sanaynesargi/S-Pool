@@ -104,7 +104,7 @@ const ActionsPage = () => {
   useEffect(() => {
     // Fetch the list of seasons
     axios
-      .get(`http://${apiUrl}/getSeasons`)
+      .get(`${apiUrl}/getSeasons`)
       .then((response) => {
         setSeasons(response.data);
       })
@@ -114,32 +114,32 @@ const ActionsPage = () => {
   useEffect(() => {
     Promise.all([
       axios.get(
-        `http://${apiUrl}/player-actions-stats?mode=singles&seasonId=${
+        `${apiUrl}/player-actions-stats?mode=singles&seasonId=${
           selectedSeason ?? ""
         }`
       ),
       axios.get(
-        `http://${apiUrl}/player-actions-stats?mode=doubles&seasonId=${
+        `${apiUrl}/player-actions-stats?mode=doubles&seasonId=${
           selectedSeason ?? ""
         }`
       ),
       axios.get(
-        `http://${apiUrl}/player-actions-stats-averages?mode=singles&seasonId=${
+        `${apiUrl}/player-actions-stats-averages?mode=singles&seasonId=${
           selectedSeason ?? ""
         }`
       ),
       axios.get(
-        `http://${apiUrl}/player-actions-stats-averages?mode=doubles&seasonId=${
+        `${apiUrl}/player-actions-stats-averages?mode=doubles&seasonId=${
           selectedSeason ?? ""
         }`
       ),
       axios.get(
-        `http://${apiUrl}/player-actions-stats-average-tournaments?mode=singles&seasonId=${
+        `${apiUrl}/player-actions-stats-average-tournaments?mode=singles&seasonId=${
           selectedSeason ?? ""
         }`
       ),
       axios.get(
-        `http://${apiUrl}/player-actions-stats-average-tournaments?mode=doubles&seasonId=${
+        `${apiUrl}/player-actions-stats-average-tournaments?mode=doubles&seasonId=${
           selectedSeason ?? ""
         }`
       ),

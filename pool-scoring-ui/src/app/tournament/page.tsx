@@ -299,11 +299,11 @@ const PlayerStatsComponent = () => {
       setIsLoading(true);
       try {
         const response = await fetch(
-          `http://${apiUrl}/tournamentData?mode=singles`
+          `${apiUrl}/tournamentData?mode=singles`
         );
 
         const playersS = await fetch(
-          `http://${apiUrl}/allPlayers?mode=singles`
+          `${apiUrl}/allPlayers?mode=singles`
         );
 
         if (!response.ok) {
@@ -352,11 +352,11 @@ const PlayerStatsComponent = () => {
       setIsLoading(true);
       try {
         const response = await fetch(
-          `http://${apiUrl}/tournamentData?mode=doubles`
+          `${apiUrl}/tournamentData?mode=doubles`
         );
 
         const playersD = await fetch(
-          `http://${apiUrl}/allPlayers?mode=doubles`
+          `${apiUrl}/allPlayers?mode=doubles`
         );
 
         if (!response.ok) {
@@ -396,11 +396,11 @@ const PlayerStatsComponent = () => {
       setIsLoading(true);
       try {
         const response = await fetch(
-          `http://${apiUrl}/tournamentData?mode=allstar`
+          `${apiUrl}/tournamentData?mode=allstar`
         );
 
         const playersA = await fetch(
-          `http://${apiUrl}/allPlayers?mode=allstar`
+          `${apiUrl}/allPlayers?mode=allstar`
         );
 
         if (!response.ok) {
@@ -443,7 +443,7 @@ const PlayerStatsComponent = () => {
     const fetchRtg = async () => {
       try {
         const response = await fetch(
-          `http://${apiUrl}/VIRAAJ_CALC?mode=${
+          `${apiUrl}/VIRAAJ_CALC?mode=${
             mode == 0 ? "singles" : mode == 1 ? "doubles" : "allstar"
           }&startId=${currentTournament}&stopId=${currentTournament}`
         );

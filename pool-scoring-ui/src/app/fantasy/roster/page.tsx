@@ -94,7 +94,7 @@ const RosterPage = () => {
     leagueId: string,
     adder: number
   ) => {
-    const response = await fetch(`http://${apiUrl}/fantasy/getPlayerStats`, {
+    const response = await fetch(`${apiUrl}/fantasy/getPlayerStats`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -115,7 +115,7 @@ const RosterPage = () => {
   const checkAndLoadRoster = async (playerId: string, leagueId: string) => {
     try {
       const response = await fetch(
-        `http://${apiUrl}/fantasy/checkPlayerInRoster?playerId=${playerId}&leagueId=${leagueId}`
+        `${apiUrl}/fantasy/checkPlayerInRoster?playerId=${playerId}&leagueId=${leagueId}`
       );
 
       const data = await response.json();
@@ -163,7 +163,7 @@ const RosterPage = () => {
 
     // Submit data to the endpoint
     try {
-      const response = await fetch(`http://${apiUrl}/fantasy/addPlayer`, {
+      const response = await fetch(`${apiUrl}/fantasy/addPlayer`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -276,7 +276,7 @@ const RosterPage = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const players = await fetch(`http://${apiUrl}/allPlayers?mode=singles`);
+      const players = await fetch(`${apiUrl}/allPlayers?mode=singles`);
 
       if (!players.ok) {
         throw new Error(`HTTP error! status: ${players.status}`);

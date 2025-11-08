@@ -43,7 +43,7 @@ const PlayerStatsTable = ({ players }: any) => {
   useEffect(() => {
     // Fetch the list of seasons
     axios
-      .get(`http://${apiUrl}/getSeasons`)
+      .get(`${apiUrl}/getSeasons`)
       .then((response) => {
         let newArr = [];
 
@@ -78,7 +78,7 @@ const PlayerStatsTable = ({ players }: any) => {
       return;
     }
 
-    data = axios.get(`http://${apiUrl}/grades?mode=${mode}&seasonId=${season}`);
+    data = axios.get(`${apiUrl}/grades?mode=${mode}&seasonId=${season}`);
 
     data.then((resp: any) => {
       setData(resp.data as any);

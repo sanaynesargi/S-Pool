@@ -155,14 +155,14 @@ const SlideshowModal = ({
 
   useEffect(() => {
     const fetchData = async () => {
-      const tags = await axios.get(`http://${apiUrl}/getTags`, {
+      const tags = await axios.get(`${apiUrl}/getTags`, {
         params: { mode },
       });
 
       setTags(tags.data.playerTags);
 
       const seasonProgress = await axios.get(
-        `http://${apiUrl}/getSeasonProgress`
+        `${apiUrl}/getSeasonProgress`
       );
 
       setSeasonProgress(seasonProgress.data);

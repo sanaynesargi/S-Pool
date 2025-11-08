@@ -42,33 +42,33 @@ const PlayerStats = () => {
     const fetchData = async () => {
       try {
         const responses = await Promise.all([
-          axios.get(`http://${apiUrl}/total-points?mode=singles`),
-          axios.get(`http://${apiUrl}/total-points?mode=doubles`),
+          axios.get(`${apiUrl}/total-points?mode=singles`),
+          axios.get(`${apiUrl}/total-points?mode=doubles`),
 
-          axios.get(`http://${apiUrl}/average-points-per-game?mode=singles`),
-          axios.get(`http://${apiUrl}/average-points-per-game?mode=doubles`),
+          axios.get(`${apiUrl}/average-points-per-game?mode=singles`),
+          axios.get(`${apiUrl}/average-points-per-game?mode=doubles`),
 
-          axios.get(`http://${apiUrl}/average-standings-per-game?mode=singles`),
-          axios.get(`http://${apiUrl}/average-standings-per-game?mode=doubles`),
+          axios.get(`${apiUrl}/average-standings-per-game?mode=singles`),
+          axios.get(`${apiUrl}/average-standings-per-game?mode=doubles`),
 
-          axios.get(`http://${apiUrl}/player-ppt?mode=singles`),
-          axios.get(`http://${apiUrl}/player-ppt?mode=doubles`),
+          axios.get(`${apiUrl}/player-ppt?mode=singles`),
+          axios.get(`${apiUrl}/player-ppt?mode=doubles`),
 
           axios.get(
-            `http://${apiUrl}/average-points-per-tournament-game?mode=singles`
+            `${apiUrl}/average-points-per-tournament-game?mode=singles`
           ),
           axios.get(
-            `http://${apiUrl}/average-points-per-tournament-game?mode=doubles`
+            `${apiUrl}/average-points-per-tournament-game?mode=doubles`
           ),
 
-          axios.get(`http://${apiUrl}/total-games-played?mode=singles`),
-          axios.get(`http://${apiUrl}/total-games-played?mode=doubles`),
+          axios.get(`${apiUrl}/total-games-played?mode=singles`),
+          axios.get(`${apiUrl}/total-games-played?mode=doubles`),
 
-          axios.get(`http://${apiUrl}/total-tournaments-played?mode=singles`),
-          axios.get(`http://${apiUrl}/total-tournaments-played?mode=doubles`),
+          axios.get(`${apiUrl}/total-tournaments-played?mode=singles`),
+          axios.get(`${apiUrl}/total-tournaments-played?mode=doubles`),
 
-          axios.get(`http://${apiUrl}/player-tt?mode=singles`),
-          axios.get(`http://${apiUrl}/player-tt?mode=doubles`),
+          axios.get(`${apiUrl}/player-tt?mode=singles`),
+          axios.get(`${apiUrl}/player-tt?mode=doubles`),
         ]);
 
         const [

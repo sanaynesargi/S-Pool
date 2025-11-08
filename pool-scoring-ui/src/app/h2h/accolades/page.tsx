@@ -239,7 +239,7 @@ const AccoladeTrackerPage = () => {
     // Fetch the list of seasons
     const fetchSeasons = async () => {
       try {
-        const response = await axios.get(`http://${apiUrl}/getSeasons`);
+        const response = await axios.get(`${apiUrl}/getSeasons`);
         setSeasons(response.data);
       } catch (error) {
         console.error("Error fetching seasons:", error);
@@ -252,55 +252,55 @@ const AccoladeTrackerPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       const gamesResS = await axios.get(
-        `http://${apiUrl}/average-points-per-tournament-game`,
+        `${apiUrl}/average-points-per-tournament-game`,
         { params: { mode: "singles", seasonId: selectedSeason ?? null } }
       );
 
       const gamesResD = await axios.get(
-        `http://${apiUrl}/average-points-per-tournament-game`,
+        `${apiUrl}/average-points-per-tournament-game`,
         { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
       );
 
       const tournamentsResS = await axios.get(
-        `http://${apiUrl}/average-points-per-game`,
+        `${apiUrl}/average-points-per-game`,
         { params: { mode: "singles", seasonId: selectedSeason ?? null } }
       );
 
       const tournamentsResD = await axios.get(
-        `http://${apiUrl}/average-points-per-game`,
+        `${apiUrl}/average-points-per-game`,
         { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
       );
 
-      const pptSingles = await axios.get(`http://${apiUrl}/player-ppt`, {
+      const pptSingles = await axios.get(`${apiUrl}/player-ppt`, {
         params: { mode: "singles", seasonId: selectedSeason ?? null },
       });
-      const pptDoubles = await axios.get(`http://${apiUrl}/player-ppt`, {
+      const pptDoubles = await axios.get(`${apiUrl}/player-ppt`, {
         params: { mode: "doubles", seasonId: selectedSeason ?? null },
       });
 
       const bwtSingles = await axios.get(
-        `http://${apiUrl}/tournamentBestWorst`,
+        `${apiUrl}/tournamentBestWorst`,
         { params: { mode: "singles", seasonId: selectedSeason ?? null } }
       );
       const bwtDoubles = await axios.get(
-        `http://${apiUrl}/tournamentBestWorst`,
+        `${apiUrl}/tournamentBestWorst`,
         { params: { mode: "doubles", seasonId: selectedSeason ?? null } }
       );
 
       const winPercSingles = await axios.get(
-        `http://${apiUrl}/get-records?mode=${"singles"}&seasonId=${
+        `${apiUrl}/get-records?mode=${"singles"}&seasonId=${
           selectedSeason ?? ""
         }`
       );
 
       const winPercDoubles = await axios.get(
-        `http://${apiUrl}/get-records-p?mode=${"doubles"}&seasonId=${
+        `${apiUrl}/get-records-p?mode=${"doubles"}&seasonId=${
           selectedSeason ?? ""
         }`
       );
 
       const seasonProgress = await axios.get(
-        `http://${apiUrl}/getSeasonProgress`
+        `${apiUrl}/getSeasonProgress`
       );
 
       setSeasonProgress(seasonProgress.data);

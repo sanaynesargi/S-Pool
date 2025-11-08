@@ -103,19 +103,19 @@ const BettingLines = () => {
       try {
         const [singlesResponse, doublesResponse] = await Promise.all([
           axios.get(
-            `http://${apiUrl}/player-actions-stats-averages?mode=singles&seasonId=2`
+            `${apiUrl}/player-actions-stats-averages?mode=singles&seasonId=2`
           ),
           axios.get(
-            `http://${apiUrl}/player-actions-stats-averages?mode=doubles&seasonId=2`
+            `${apiUrl}/player-actions-stats-averages?mode=doubles&seasonId=2`
           ),
         ]);
 
         const [singlesTResponse, doublesTResponse] = await Promise.all([
           axios.get(
-            `http://${apiUrl}/average-points-per-game?mode=singles&seasonId=2`
+            `${apiUrl}/average-points-per-game?mode=singles&seasonId=2`
           ),
           axios.get(
-            `http://${apiUrl}/average-points-per-game?mode=doubles&seasonId=2`
+            `${apiUrl}/average-points-per-game?mode=doubles&seasonId=2`
           ),
         ]);
 

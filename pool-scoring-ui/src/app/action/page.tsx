@@ -55,7 +55,7 @@ const Home: React.FC = () => {
 
       matches = JSON.parse(matches);
 
-      const obj = await axios.post(`http://${apiUrl}/end-game`, {
+      const obj = await axios.post(`${apiUrl}/end-game`, {
         playerActionCounts,
         mode: mode ? "singles" : "doubles",
         standings,
